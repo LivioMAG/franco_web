@@ -7092,7 +7092,9 @@ function buildWeeklyMatrixRows(reports) {
 }
 
 function buildAbsenceMatrixRows(reports) {
-  const rows = ABSENCE_CATEGORY_CONFIG.map((category) => ({
+  const rows = ABSENCE_CATEGORY_CONFIG
+    .filter((category) => category.typeCode !== 7 && category.typeCode !== BLOCK_DAY_TYPE_CODE)
+    .map((category) => ({
     typeCode: category.typeCode,
     label: category.label,
     days: Array(6).fill(0),
@@ -7361,7 +7363,6 @@ function buildEmptyAbsenceRows() {
     { label: 'Feiertag', days: Array(6).fill(''), total: '', notes: '' },
     { label: 'Feiertag (unbezahlt)', days: Array(6).fill(''), total: '', notes: '' },
     { label: 'ÜK', days: Array(6).fill(''), total: '', notes: '' },
-    { label: 'Berufsschule', days: Array(6).fill(''), total: '', notes: '' },
     { label: 'Total Absenzen', days: Array(6).fill(''), total: '', notes: '' },
   ];
 }
