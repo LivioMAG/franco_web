@@ -4527,6 +4527,18 @@ function isSchoolReport(report) {
   return projectName.includes('berufsschule') || commissionNumber.includes('berufsschule');
 }
 
+function isUkReport(report) {
+  if (Number(report?.abz_typ) === 6) return true;
+  const projectName = String(report?.project_name || '').toLowerCase();
+  const commissionNumber = String(report?.commission_number || '').toLowerCase();
+  return projectName.includes('ük') || projectName.includes('uek') || projectName.includes('uk')
+    || commissionNumber.includes('ük') || commissionNumber.includes('uek') || commissionNumber.includes('uk');
+}
+
+function isSchoolOrUkReport(report) {
+  return isSchoolReport(report) || isUkReport(report);
+}
+
 function isDateInSchoolVacation(date) {
   return state.schoolVacations.some((range) => date >= String(range.start_date || '') && date <= String(range.end_date || ''));
 }
@@ -6791,7 +6803,7 @@ function buildHolidayConfirmationFileName(request, profile) {
 
 function buildWeeklyReportLayout(reports) {
   const regularRows = buildWeeklyMatrixRows(
-    reports.filter((report) => !isAbsenceReport(report) || isSchoolReport(report)),
+    reports.filter((report) => !isAbsenceReport(report) || isSchoolOrUkReport(report)),
   );
   const absenceRows = buildAbsenceMatrixRows(reports);
   const notes = buildWeeklyRemarkLines(reports);
@@ -7057,13 +7069,13 @@ function buildWeeklyMatrixRows(reports) {
 
   reports.forEach((report) => {
     const projectName = String(report.project_name || '').trim();
-    const isSchoolEntry = isSchoolReport(report);
-    const commission = isSchoolEntry ? '' : String(report.commission_number || '').trim();
+    const isSchoolLikeEntry = isSchoolOrUkReport(report);
+    const commission = isSchoolLikeEntry ? '' : String(report.commission_number || '').trim();
     const key = `${projectName}__${commission}`;
     if (!groups.has(key)) {
       groups.set(key, {
-        projectName: isSchoolEntry ? 'Berufsschule' : (projectName || 'Ohne Projektname'),
-        commission: commission || (isSchoolEntry ? '' : '–'),
+        projectName: isSchoolReport(report) ? 'Berufsschule' : (projectName || 'Ohne Projektname'),
+        commission: commission || (isSchoolLikeEntry ? '' : '–'),
         days: Array(6).fill(''),
         dailyMinutes: Array(6).fill(0),
         totalMinutes: 0,
@@ -7093,7 +7105,7 @@ function buildWeeklyMatrixRows(reports) {
 
 function buildAbsenceMatrixRows(reports) {
   const rows = ABSENCE_CATEGORY_CONFIG
-    .filter((category) => category.typeCode !== 7 && category.typeCode !== BLOCK_DAY_TYPE_CODE)
+    .filter((category) => ![6, 7, 9, BLOCK_DAY_TYPE_CODE].includes(category.typeCode))
     .map((category) => ({
     typeCode: category.typeCode,
     label: category.label,
@@ -7104,7 +7116,7 @@ function buildAbsenceMatrixRows(reports) {
 
   reports.forEach((report) => {
     const absenceTypeCode = getAbsenceTypeCode(report);
-    if (!absenceTypeCode || absenceTypeCode === 7 || absenceTypeCode === BLOCK_DAY_TYPE_CODE) {
+    if (!absenceTypeCode || [6, 7, 9, BLOCK_DAY_TYPE_CODE].includes(absenceTypeCode)) {
       return;
     }
 
@@ -7361,8 +7373,6 @@ function buildEmptyAbsenceRows() {
     { label: 'Militär', days: Array(6).fill(''), total: '', notes: '' },
     { label: 'Unfall', days: Array(6).fill(''), total: '', notes: '' },
     { label: 'Feiertag', days: Array(6).fill(''), total: '', notes: '' },
-    { label: 'Feiertag (unbezahlt)', days: Array(6).fill(''), total: '', notes: '' },
-    { label: 'ÜK', days: Array(6).fill(''), total: '', notes: '' },
     { label: 'Total Absenzen', days: Array(6).fill(''), total: '', notes: '' },
   ];
 }
