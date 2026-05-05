@@ -6791,7 +6791,7 @@ function buildHolidayConfirmationFileName(request, profile) {
 
 function buildWeeklyReportLayout(reports) {
   const regularRows = buildWeeklyMatrixRows(
-    reports.filter((report) => !isAbsenceReport(report)),
+    reports.filter((report) => !isAbsenceReport(report) || isSchoolReport(report)),
   );
   const absenceRows = buildAbsenceMatrixRows(reports);
   const notes = buildWeeklyRemarkLines(reports);
@@ -7057,12 +7057,13 @@ function buildWeeklyMatrixRows(reports) {
 
   reports.forEach((report) => {
     const projectName = String(report.project_name || '').trim();
-    const commission = String(report.commission_number || '').trim();
+    const isSchoolEntry = isSchoolReport(report);
+    const commission = isSchoolEntry ? '' : String(report.commission_number || '').trim();
     const key = `${projectName}__${commission}`;
     if (!groups.has(key)) {
       groups.set(key, {
-        projectName: projectName || 'Ohne Projektname',
-        commission: commission || '–',
+        projectName: isSchoolEntry ? 'Berufsschule' : (projectName || 'Ohne Projektname'),
+        commission: commission || (isSchoolEntry ? '' : '–'),
         days: Array(6).fill(''),
         dailyMinutes: Array(6).fill(0),
         totalMinutes: 0,
@@ -7101,7 +7102,7 @@ function buildAbsenceMatrixRows(reports) {
 
   reports.forEach((report) => {
     const absenceTypeCode = getAbsenceTypeCode(report);
-    if (!absenceTypeCode) {
+    if (!absenceTypeCode || absenceTypeCode === 7 || absenceTypeCode === BLOCK_DAY_TYPE_CODE) {
       return;
     }
 
@@ -7364,6 +7365,7 @@ function buildEmptyAbsenceRows() {
     { label: 'Total Absenzen', days: Array(6).fill(''), total: '', notes: '' },
   ];
 }
+
 
 function isAbsenceReport(report) {
   return getAbsenceTypeCode(report) > 0;
