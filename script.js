@@ -4540,12 +4540,16 @@ function isSchoolReport(report) {
   return projectName.includes('berufsschule') || commissionNumber.includes('berufsschule');
 }
 
+function hasUkToken(value) {
+  const normalized = String(value || '').toLowerCase();
+  return /(^|[^a-z0-9])(ük|uek|uk)([^a-z0-9]|$)/.test(normalized);
+}
+
 function isUkReport(report) {
   if (Number(report?.abz_typ) === 6) return true;
-  const projectName = String(report?.project_name || '').toLowerCase();
-  const commissionNumber = String(report?.commission_number || '').toLowerCase();
-  return projectName.includes('ük') || projectName.includes('uek') || projectName.includes('uk')
-    || commissionNumber.includes('ük') || commissionNumber.includes('uek') || commissionNumber.includes('uk');
+  const projectName = String(report?.project_name || '');
+  const commissionNumber = String(report?.commission_number || '');
+  return hasUkToken(projectName) || hasUkToken(commissionNumber);
 }
 
 function isSchoolOrUkReport(report) {
