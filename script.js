@@ -1095,6 +1095,9 @@ function bindEvents() {
   if (elements.submitMissingReportsCallButton) {
     elements.submitMissingReportsCallButton.addEventListener('click', handleMissingReportsCallSubmit);
   }
+  if (elements.missingList) {
+    elements.missingList.addEventListener('click', handleMissingListClick);
+  }
   elements.reportsTableBody.addEventListener('click', handleReportsTableClick);
   elements.absencesTableBody.addEventListener('click', handleAbsencesTableClick);
   elements.saldoTableBody.addEventListener('click', handleSaldoTableClick);
@@ -2347,7 +2350,17 @@ function renderSubmissionLists() {
       (entry) => `
       <li class="align-start">
         <div class="status-stack">
-          <strong>${escapeHtml(entry.profile.full_name)}</strong>
+          <strong>
+            <button
+              class="button button-secondary button-small button-icon"
+              type="button"
+              data-action="call-missing-profile"
+              data-profile-id="${escapeAttribute(entry.profile.id)}"
+              title="Nur diese Person telefonisch delegieren"
+              aria-label="Nur ${escapeAttribute(entry.profile.full_name || 'diese Person')} telefonisch delegieren"
+            >📞</button>
+            ${escapeHtml(entry.profile.full_name)}
+          </strong>
           <div class="subtle-text">${escapeHtml(entry.description)}</div>
         </div>
         <div class="status-meta">
@@ -6275,6 +6288,79 @@ function splitNameParts(fullName) {
   return { vorname: vorname || '', name: rest.join(' ') || '' };
 }
 
+function getMissingReportsCallPayload(entry, weekValue, delegatorPhone) {
+  const profile = entry?.profile;
+  const fullName = String(profile?.full_name || '').trim();
+  const phone = resolveProfilePhoneNumber(profile);
+  if (!phone) {
+    return { error: fullName || profile?.email || 'Unbekannt' };
+  }
+  const names = splitNameParts(fullName);
+  return {
+    payload: {
+      name: names.name || fullName,
+      vorname: names.vorname,
+      full_name: fullName,
+      phone,
+      week: weekValue,
+      delegator_phone: delegatorPhone,
+    },
+    fullName: fullName || 'Unbekannt',
+  };
+}
+
+async function sendMissingReportsCallPayload(payload) {
+  const response = await fetch(state.missingReportsCallWebhookUrl || DEFAULT_MISSING_REPORTS_CALL_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+}
+
+async function handleMissingListClick(event) {
+  const callButton = event.target.closest('[data-action="call-missing-profile"]');
+  if (!callButton) {
+    return;
+  }
+  if (state.isMissingReportsCallSubmitting) {
+    return;
+  }
+
+  const profileId = String(callButton.dataset.profileId || '').trim();
+  const weekValue = String(state.selectedWeek || getCurrentWeekValue() || '').trim();
+  const delegatorPhone = resolveProfilePhoneNumber(state.currentProfile);
+  if (!weekValue) return;
+  if (!delegatorPhone) {
+    alert('In deinem Profil ist keine Telefonnummer hinterlegt.');
+    return;
+  }
+
+  const entry = getIncompleteSubmissionProfiles().find((item) => String(item.profile?.id || '') === profileId);
+  if (!entry) {
+    alert('Die ausgewählte Person hat aktuell keinen fehlenden/unvollständigen Rapport.');
+    return;
+  }
+
+  const callInfo = getMissingReportsCallPayload(entry, weekValue, delegatorPhone);
+  if (callInfo.error) {
+    alert(`Kein Telefon hinterlegt bei: ${callInfo.error}.`);
+    return;
+  }
+
+  callButton.disabled = true;
+  try {
+    await sendMissingReportsCallPayload(callInfo.payload);
+    alert(`Telefon-Webhook für ${callInfo.fullName} wurde gesendet.`);
+  } catch (error) {
+    alert(`Webhook für ${callInfo.fullName} fehlgeschlagen: ${error.message}`);
+  } finally {
+    callButton.disabled = false;
+  }
+}
+
 function resolveProfilePhoneNumber(profile) {
   if (!profile) return '';
   return String(
@@ -6324,36 +6410,17 @@ async function handleMissingReportsCallSubmit() {
   renderMissingReportsCallModalState();
 
   for (const entry of entries) {
-    const profile = entry.profile;
-    const fullName = String(profile?.full_name || '').trim();
-    const phone = resolveProfilePhoneNumber(profile);
-    if (!phone) {
-      unreachableNames.push(fullName || profile?.email || 'Unbekannt');
+    const callInfo = getMissingReportsCallPayload(entry, weekValue, delegatorPhone);
+    if (callInfo.error) {
+      unreachableNames.push(callInfo.error);
       continue;
     }
 
-    const names = splitNameParts(fullName);
-    const payload = {
-      name: names.name || fullName,
-      vorname: names.vorname,
-      full_name: fullName,
-      phone,
-      week: weekValue,
-      delegator_phone: delegatorPhone,
-    };
-
     try {
       // eslint-disable-next-line no-await-in-loop
-      const response = await fetch(state.missingReportsCallWebhookUrl || DEFAULT_MISSING_REPORTS_CALL_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      await sendMissingReportsCallPayload(callInfo.payload);
     } catch (error) {
-      sendErrors.push(`${fullName || 'Unbekannt'} (${error.message})`);
+      sendErrors.push(`${callInfo.fullName} (${error.message})`);
     }
   }
 
