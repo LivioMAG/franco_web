@@ -718,6 +718,7 @@ const state = {
   employeeSelectionInitialized: false,
   employeeSelectionTouched: false,
   showControlledReports: false,
+  reportsQuickFilter: 'all',
   absenceFilterQuery: '',
   selectedAbsenceEmployeeIds: [],
   absenceSelectionInitialized: false,
@@ -846,6 +847,8 @@ function cacheElements() {
   elements.employeeFilterList = document.getElementById('employeeFilterList');
   elements.selectAllEmployeesButton = document.getElementById('selectAllEmployeesButton');
   elements.clearEmployeeSelectionButton = document.getElementById('clearEmployeeSelectionButton');
+  elements.filterAbsenceReportsButton = document.getElementById('filterAbsenceReportsButton');
+  elements.filterExpenseReportsButton = document.getElementById('filterExpenseReportsButton');
   elements.reportsToolbarPlaceholderButton = document.getElementById('reportsToolbarPlaceholderButton');
   elements.showControlledReportsToggle = document.getElementById('showControlledReportsToggle');
   elements.showControlledReportsInput = document.getElementById('showControlledReportsInput');
@@ -1060,6 +1063,12 @@ function bindEvents() {
   elements.employeeFilterInput.addEventListener('input', handleEmployeeFilterInput);
   elements.selectAllEmployeesButton.addEventListener('click', selectAllEmployees);
   elements.clearEmployeeSelectionButton.addEventListener('click', clearEmployeeSelection);
+  if (elements.filterAbsenceReportsButton) {
+    elements.filterAbsenceReportsButton.addEventListener('click', () => toggleReportsQuickFilter('absence'));
+  }
+  if (elements.filterExpenseReportsButton) {
+    elements.filterExpenseReportsButton.addEventListener('click', () => toggleReportsQuickFilter('expenses'));
+  }
   if (elements.reportsToolbarPlaceholderButton) {
     elements.reportsToolbarPlaceholderButton.addEventListener('click', openBulkConfirmModal);
   }
@@ -1612,6 +1621,7 @@ function resetAppState() {
   state.employeeSelectionInitialized = false;
   state.employeeSelectionTouched = false;
   state.showControlledReports = false;
+  state.reportsQuickFilter = 'all';
   state.absenceFilterQuery = '';
   state.selectedAbsenceEmployeeIds = [];
   state.absenceSelectionInitialized = false;
@@ -2088,6 +2098,12 @@ function renderEmployeeFilters() {
   if (elements.showControlledReportsToggle) {
     elements.showControlledReportsToggle.classList.toggle('is-active', state.showControlledReports);
   }
+  if (elements.filterAbsenceReportsButton) {
+    elements.filterAbsenceReportsButton.classList.toggle('is-active', state.reportsQuickFilter === 'absence');
+  }
+  if (elements.filterExpenseReportsButton) {
+    elements.filterExpenseReportsButton.classList.toggle('is-active', state.reportsQuickFilter === 'expenses');
+  }
   const profiles = getReportableProfiles();
   const visibleProfiles = getMatchingProfiles(profiles, state.employeeFilterQuery).slice(0, MAX_VISIBLE_FILTER_OPTIONS);
 
@@ -2395,6 +2411,13 @@ function handleShowControlledReportsToggle() {
   renderReportsTable();
 }
 
+function toggleReportsQuickFilter(filterName) {
+  state.reportsQuickFilter = state.reportsQuickFilter === filterName ? 'all' : filterName;
+  state.reportsPage = 1;
+  renderReportsTable();
+  renderEmployeeFilters();
+}
+
 function handleShowControlledAbsencesToggle() {
   state.showControlledAbsences = Boolean(elements.showControlledAbsencesInput?.checked);
   renderAbsenceTable();
@@ -2480,14 +2503,14 @@ function syncEmployeeSelection() {
   const selected = state.selectedEmployeeIds.filter((id) => validIdSet.has(id));
 
   if (!state.employeeSelectionInitialized) {
-    state.selectedEmployeeIds = [...validIds];
+    state.selectedEmployeeIds = [];
     state.employeeSelectionInitialized = true;
     state.reportsPage = 1;
     return;
   }
 
   if (!state.employeeSelectionTouched) {
-    state.selectedEmployeeIds = [...validIds];
+    state.selectedEmployeeIds = [];
     state.reportsPage = 1;
     return;
   }
@@ -2517,13 +2540,27 @@ function syncAbsenceSelection() {
 }
 
 function getFilteredReports() {
-  if (!state.selectedEmployeeIds.length && !state.employeeSelectionTouched) {
-    return [...state.weeklyReports].filter((report) => state.showControlledReports || !String(report.controll || '').trim());
+  const selectedIds = new Set(state.selectedEmployeeIds);
+  return state.weeklyReports
+    .filter((report) => selectedIds.has(report.profile_id))
+    .filter((report) => state.showControlledReports || !String(report.controll || '').trim())
+    .filter((report) => matchesReportsQuickFilter(report));
+}
+
+function matchesReportsQuickFilter(report) {
+  if (state.reportsQuickFilter === 'absence') {
+    const absenceTypeCode = Number(getAbsenceTypeCode(report));
+    return Number.isInteger(absenceTypeCode) && absenceTypeCode >= 1 && absenceTypeCode <= 8;
   }
 
-  const selectedIds = new Set(state.selectedEmployeeIds);
-  return state.weeklyReports.filter((report) => selectedIds.has(report.profile_id))
-    .filter((report) => state.showControlledReports || !String(report.controll || '').trim());
+  if (state.reportsQuickFilter === 'expenses') {
+    const hasAttachments = Array.isArray(report.attachments) && report.attachments.length > 0;
+    const otherCosts = Number(report.other_costs ?? report.other_cost ?? 0);
+    const expenses = Number(report.expenses ?? 0);
+    return hasAttachments || otherCosts > 0 || expenses > 0;
+  }
+
+  return true;
 }
 
 function getSortedFilteredReports() {
