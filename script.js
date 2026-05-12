@@ -2467,7 +2467,9 @@ function handleAbsenceSelectionChange(event) {
   render();
 }
 
-function selectAllEmployees() {
+async function selectAllEmployees() {
+  state.reportsQuickFilter = 'all';
+  await loadData();
   state.selectedEmployeeIds = getAvailableReportProfileIds();
   state.employeeSelectionInitialized = true;
   state.employeeSelectionTouched = true;
