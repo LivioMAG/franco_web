@@ -728,7 +728,6 @@ const state = {
   isConfirmationsModalOpen: false,
   isRejectedAbsencesModalOpen: false,
   isBulkConfirmModalOpen: false,
-  bulkConfirmSelectedProjectId: '',
   bulkConfirmWeekdayFilter: '',
   bulkConfirmCommissionFilter: '',
   isBulkConfirmSaving: false,
@@ -868,7 +867,6 @@ function cacheElements() {
   elements.closeRejectedAbsencesModalButton = document.getElementById('closeRejectedAbsencesModalButton');
   elements.bulkConfirmModal = document.getElementById('bulkConfirmModal');
   elements.closeBulkConfirmModalButton = document.getElementById('closeBulkConfirmModalButton');
-  elements.bulkConfirmProjectSelect = document.getElementById('bulkConfirmProjectSelect');
   elements.bulkConfirmWeekdaySelect = document.getElementById('bulkConfirmWeekdaySelect');
   elements.bulkConfirmCommissionInput = document.getElementById('bulkConfirmCommissionInput');
   elements.bulkConfirmSearchButton = document.getElementById('bulkConfirmSearchButton');
@@ -1090,9 +1088,6 @@ function bindEvents() {
   if (elements.closeRejectedAbsencesModalButton) elements.closeRejectedAbsencesModalButton.addEventListener('click', closeRejectedAbsencesModal);
   if (elements.closeBulkConfirmModalButton) {
     elements.closeBulkConfirmModalButton.addEventListener('click', closeBulkConfirmModal);
-  }
-  if (elements.bulkConfirmProjectSelect) {
-    elements.bulkConfirmProjectSelect.addEventListener('change', handleBulkConfirmProjectSelectionChange);
   }
   if (elements.bulkConfirmSearchButton) {
     elements.bulkConfirmSearchButton.addEventListener('click', handleBulkConfirmSearch);
@@ -3950,28 +3945,7 @@ async function handleBulkConfirmSubmit() {
   if (state.isBulkConfirmSaving || state.isSavingReport) {
     return;
   }
-  const selectedProjectId = String(state.bulkConfirmSelectedProjectId || '');
-  if (!selectedProjectId) {
-    state.bulkConfirmResultMessage = 'Bitte zuerst ein Projekt auswählen.';
-    state.bulkConfirmResultIsError = true;
-    renderBulkConfirmModalState();
-    return;
-  }
-
-  const project = state.projects.find((item) => String(item.id) === selectedProjectId);
-  if (!project) {
-    state.bulkConfirmResultMessage = 'Das gewählte Projekt wurde nicht gefunden.';
-    state.bulkConfirmResultIsError = true;
-    renderBulkConfirmModalState();
-    return;
-  }
-
-  const reportsToConfirm = state.weeklyReports.filter((report) => (
-    String(report.commission_number || '').trim() === String(project.commission_number || '').trim()
-    && (!state.bulkConfirmCommissionFilter || String(report.commission_number || '').trim().toLowerCase() === state.bulkConfirmCommissionFilter.trim().toLowerCase())
-    && (!state.bulkConfirmWeekdayFilter || String(getIsoWeekdayFromDate(report.work_date)) === String(state.bulkConfirmWeekdayFilter))
-    && !String(report.controll || '').trim()
-  ));
+  const reportsToConfirm = getBulkConfirmFilteredReports({ onlyOpenReports: true });
   if (!reportsToConfirm.length) {
     state.bulkConfirmResultMessage = 'Keine offenen Rapporte zum Bestätigen gefunden.';
     state.bulkConfirmResultIsError = false;
@@ -6193,27 +6167,23 @@ function getProjectLeadProjects() {
     .sort((left, right) => `${left.commission_number || ''} ${left.name || ''}`.localeCompare(`${right.commission_number || ''} ${right.name || ''}`, 'de'));
 }
 
-function getBulkConfirmProjectSummaries(projectId) {
-  if (!projectId) {
-    return [];
-  }
-  const project = state.projects.find((item) => String(item.id) === String(projectId));
-  if (!project) {
-    return [];
-  }
-  const reports = state.weeklyReports.filter((report) => {
-    const commissionMatchesProject = String(report.commission_number || '').trim() === String(project.commission_number || '').trim();
-    if (!commissionMatchesProject) return false;
-    if (state.bulkConfirmCommissionFilter) {
-      const reportCommission = String(report.commission_number || '').trim().toLowerCase();
-      if (reportCommission !== state.bulkConfirmCommissionFilter.trim().toLowerCase()) return false;
-    }
-    if (state.bulkConfirmWeekdayFilter) {
-      const reportIsoWeekday = getIsoWeekdayFromDate(report.work_date);
-      if (String(reportIsoWeekday) !== String(state.bulkConfirmWeekdayFilter)) return false;
-    }
+function getBulkConfirmFilteredReports({ onlyOpenReports = false } = {}) {
+  const leadProjects = getProjectLeadProjects();
+  const allowedCommissionNumbers = new Set(
+    leadProjects.map((project) => String(project.commission_number || '').trim()).filter(Boolean),
+  );
+  return state.weeklyReports.filter((report) => {
+    const reportCommission = String(report.commission_number || '').trim();
+    if (!allowedCommissionNumbers.has(reportCommission)) return false;
+    if (state.bulkConfirmCommissionFilter && reportCommission.toLowerCase() !== state.bulkConfirmCommissionFilter.trim().toLowerCase()) return false;
+    if (state.bulkConfirmWeekdayFilter && String(getIsoWeekdayFromDate(report.work_date)) !== String(state.bulkConfirmWeekdayFilter)) return false;
+    if (onlyOpenReports && String(report.controll || '').trim()) return false;
     return true;
   });
+}
+
+function getBulkConfirmProjectSummaries() {
+  const reports = getBulkConfirmFilteredReports();
   const groupedByProfile = new Map();
 
   for (const report of reports) {
@@ -6240,9 +6210,6 @@ function openBulkConfirmModal() {
     return;
   }
   state.isBulkConfirmModalOpen = true;
-  if (!leadProjects.some((project) => String(project.id) === String(state.bulkConfirmSelectedProjectId))) {
-    state.bulkConfirmSelectedProjectId = leadProjects[0].id;
-  }
   state.bulkConfirmResultMessage = '';
   state.bulkConfirmResultIsError = false;
   render();
@@ -6293,13 +6260,6 @@ function renderMissingReportsCallModalState() {
   }
 }
 
-function handleBulkConfirmProjectSelectionChange(event) {
-  state.bulkConfirmSelectedProjectId = String(event.target.value || '');
-  state.bulkConfirmResultMessage = '';
-  state.bulkConfirmResultIsError = false;
-  renderBulkConfirmModalState();
-}
-
 function handleBulkConfirmSearch() {
   state.bulkConfirmCommissionFilter = String(elements.bulkConfirmCommissionInput?.value || '').trim();
   state.bulkConfirmWeekdayFilter = String(elements.bulkConfirmWeekdaySelect?.value || '').trim();
@@ -6315,23 +6275,12 @@ function getIsoWeekdayFromDate(dateValue) {
 }
 
 function renderBulkConfirmModalState() {
-  if (!elements.bulkConfirmModal || !elements.bulkConfirmProjectSelect || !elements.bulkConfirmTableBody || !elements.bulkConfirmSubmitButton) {
+  if (!elements.bulkConfirmModal || !elements.bulkConfirmTableBody || !elements.bulkConfirmSubmitButton) {
     return;
   }
 
   elements.bulkConfirmModal.classList.toggle('hidden', !state.isBulkConfirmModalOpen);
   const leadProjects = getProjectLeadProjects();
-  if (leadProjects.length && !leadProjects.some((project) => String(project.id) === String(state.bulkConfirmSelectedProjectId))) {
-    state.bulkConfirmSelectedProjectId = leadProjects[0].id;
-  }
-
-  elements.bulkConfirmProjectSelect.innerHTML = leadProjects.length
-    ? leadProjects
-        .map((project) => `<option value="${escapeAttribute(project.id)}">${escapeHtml(`${project.commission_number || '—'} · ${project.name || 'Ohne Bezeichnung'}`)}</option>`)
-        .join('')
-    : '<option value="">Keine Projekte</option>';
-  elements.bulkConfirmProjectSelect.value = state.bulkConfirmSelectedProjectId || '';
-  elements.bulkConfirmProjectSelect.disabled = !leadProjects.length || state.isBulkConfirmSaving;
   if (elements.bulkConfirmWeekdaySelect) {
     elements.bulkConfirmWeekdaySelect.value = state.bulkConfirmWeekdayFilter || '';
     elements.bulkConfirmWeekdaySelect.disabled = state.isBulkConfirmSaving;
@@ -6344,7 +6293,7 @@ function renderBulkConfirmModalState() {
     elements.bulkConfirmSearchButton.disabled = state.isBulkConfirmSaving;
   }
 
-  const summaries = getBulkConfirmProjectSummaries(state.bulkConfirmSelectedProjectId);
+  const summaries = getBulkConfirmProjectSummaries();
   elements.bulkConfirmTableBody.innerHTML = summaries.length
     ? summaries
         .map((entry) => `
@@ -6356,7 +6305,7 @@ function renderBulkConfirmModalState() {
           </tr>
         `)
         .join('')
-    : '<tr><td colspan="4">Keine Rapporte für dieses Projekt in der aktuellen Woche gefunden.</td></tr>';
+    : '<tr><td colspan="4">Keine Rapporte für die aktuelle Filterauswahl gefunden.</td></tr>';
 
   const openReportCount = summaries.reduce((sum, entry) => sum + Number(entry.openReports || 0), 0);
   elements.bulkConfirmSubmitButton.disabled = state.isBulkConfirmSaving || !leadProjects.length || !openReportCount;
