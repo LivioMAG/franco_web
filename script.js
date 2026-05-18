@@ -6167,10 +6167,14 @@ function getBulkConfirmFilteredReports({ onlyOpenReports = false } = {}) {
   const allowedCommissionNumbers = new Set(
     leadProjects.map((project) => String(project.commission_number || '').trim()).filter(Boolean),
   );
+  const selectedWeekRange = getWeekRange(state.selectedWeek);
+  const commissionFilter = String(state.bulkConfirmCommissionFilter || '').trim().toLowerCase();
   return state.weeklyReports.filter((report) => {
+    const reportDate = String(report.work_date || '').trim();
+    if (!reportDate || reportDate < selectedWeekRange.start || reportDate > selectedWeekRange.end) return false;
     const reportCommission = String(report.commission_number || '').trim();
     if (!allowedCommissionNumbers.has(reportCommission)) return false;
-    if (state.bulkConfirmCommissionFilter && reportCommission.toLowerCase() !== state.bulkConfirmCommissionFilter.trim().toLowerCase()) return false;
+    if (commissionFilter && !reportCommission.toLowerCase().includes(commissionFilter)) return false;
     if (state.bulkConfirmWeekdayFilter && String(getIsoWeekdayFromDate(report.work_date)) !== String(state.bulkConfirmWeekdayFilter)) return false;
     if (onlyOpenReports && String(report.controll || '').trim()) return false;
     return true;
