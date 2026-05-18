@@ -155,8 +155,9 @@
                     <tr>
                       <th><button id="reportsFilterEmployeeButton" class="report-column-filter-trigger" type="button">Mitarbeiter</button></th>
                       <th>Kontrolle</th>
-                      <th><button id="reportsFilterDateButton" class="report-column-filter-trigger" type="button">Datum</button></th>
+                      <th><button id="reportsSortDateButton" class="report-column-filter-trigger" type="button">Datum ↓</button></th>
                       <th><button id="reportsFilterCommissionButton" class="report-column-filter-trigger" type="button">Kommission</button></th>
+                      <th>Projektname</th>
                       <th>Arbeitszeit</th>
                       <th><button id="reportsFilterExpensesButton" class="report-column-filter-trigger" type="button">Spesen</button></th>
                       <th><button id="reportsFilterAttachmentsButton" class="report-column-filter-trigger" type="button">Anhänge</button></th>
@@ -166,7 +167,15 @@
                   <tbody id="reportsTableBody"></tbody>
                 </table>
               </div>
-              <div id="reportsColumnFilterPopover" class="column-filter-popover hidden"></div>
+              <div id="reportsColumnFilterModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="reportsColumnFilterTitle">
+                <div class="modal-backdrop" data-close-reports-filter-modal="true"></div>
+                <div class="modal-card panel modal-card-compact">
+                  <div class="section-heading compact">
+                    <h3 id="reportsColumnFilterTitle">Filter</h3>
+                  </div>
+                  <div id="reportsColumnFilterPopover" class="column-filter-popover"></div>
+                </div>
+              </div>
 
               <div class="table-pagination">
                 <button id="reportsPrevPageButton" class="button button-secondary" type="button">Zurück</button>

@@ -714,6 +714,7 @@ const state = {
   dispoAllowMultiplePerDay: true,
   selectedProjectId: null,
   reportColumnFilter: { type: 'none', values: [] },
+  reportsDateSortDescending: true,
   showControlledReports: false,
   absenceFilterQuery: '',
   selectedAbsenceEmployeeIds: [],
@@ -843,7 +844,8 @@ function cacheElements() {
   elements.showControlledReportsToggle = document.getElementById('showControlledReportsToggle');
   elements.showControlledReportsInput = document.getElementById('showControlledReportsInput');
   elements.reportsFilterEmployeeButton = document.getElementById('reportsFilterEmployeeButton');
-  elements.reportsFilterDateButton = document.getElementById('reportsFilterDateButton');
+  elements.reportsSortDateButton = document.getElementById('reportsSortDateButton');
+  elements.reportsColumnFilterModal = document.getElementById('reportsColumnFilterModal');
   elements.reportsFilterCommissionButton = document.getElementById('reportsFilterCommissionButton');
   elements.reportsFilterExpensesButton = document.getElementById('reportsFilterExpensesButton');
   elements.reportsFilterAttachmentsButton = document.getElementById('reportsFilterAttachmentsButton');
@@ -1057,7 +1059,13 @@ function bindEvents() {
   });
   elements.exportPdfButton.addEventListener('click', exportWeekPdf);
   elements.reportsFilterEmployeeButton?.addEventListener('click', () => openReportsColumnFilter('employee'));
-  elements.reportsFilterDateButton?.addEventListener('click', () => openReportsColumnFilter('date'));
+  elements.reportsSortDateButton?.addEventListener('click', () => {
+    state.reportsDateSortDescending = !state.reportsDateSortDescending;
+    if (elements.reportsSortDateButton) {
+      elements.reportsSortDateButton.textContent = state.reportsDateSortDescending ? 'Datum ↓' : 'Datum ↑';
+    }
+    renderReportsTable();
+  });
   elements.reportsFilterCommissionButton?.addEventListener('click', () => openReportsColumnFilter('commission'));
   elements.reportsFilterExpensesButton?.addEventListener('click', () => openReportsColumnFilter('expenses'));
   elements.reportsFilterAttachmentsButton?.addEventListener('click', () => openReportsColumnFilter('attachments'));
@@ -2111,7 +2119,7 @@ function renderAbsenceFilters() {
 
 function renderReportsTable() {
   if (state.isLoadingData) {
-    elements.reportsTableBody.innerHTML = `<tr><td colspan="8">Rapporte für ${escapeHtml(getWeekLabel(state.selectedWeek))} werden geladen …</td></tr>`;
+    elements.reportsTableBody.innerHTML = `<tr><td colspan="9">Rapporte für ${escapeHtml(getWeekLabel(state.selectedWeek))} werden geladen …</td></tr>`;
     renderReportsPagination({ totalItems: 0, totalPages: 1, currentPage: 1, startIndex: 0, endIndex: 0 });
     return;
   }
@@ -2120,13 +2128,13 @@ function renderReportsTable() {
   const pagination = getReportsPaginationMeta(allReports);
 
   if (!state.weeklyReports.length) {
-    elements.reportsTableBody.innerHTML = `<tr><td colspan="8">Keine Rapporte in dieser Woche gefunden.</td></tr>`;
+    elements.reportsTableBody.innerHTML = `<tr><td colspan="9">Keine Rapporte in dieser Woche gefunden.</td></tr>`;
     renderReportsPagination(pagination);
     return;
   }
 
   if (!allReports.length) {
-    elements.reportsTableBody.innerHTML = `<tr><td colspan="8">Für die aktuelle Auswahl wurden keine Rapporte gefunden.</td></tr>`;
+    elements.reportsTableBody.innerHTML = `<tr><td colspan="9">Für die aktuelle Auswahl wurden keine Rapporte gefunden.</td></tr>`;
     renderReportsPagination(pagination);
     return;
   }
@@ -2140,6 +2148,7 @@ function renderReportsTable() {
           <td>${renderControllCell(report)}</td>
           <td>${formatDate(report.work_date)}</td>
           <td>${escapeHtml(report.commission_number || '–')}</td>
+          <td>${escapeHtml(report.project_name || '–')}</td>
           <td>${formatMinutes(report.total_work_minutes)}</td>
           <td>${formatCurrency(Number(report.expenses_amount || 0) + Number(report.other_costs_amount || 0))}</td>
           <td>${renderAttachmentLinks(report.attachments)}</td>
@@ -2428,7 +2437,6 @@ function getFilteredReports() {
 function matchesReportColumnFilter(report) {
   const filter = state.reportColumnFilter || { type: 'none', values: [] };
   if (filter.type === 'employee') return filter.values.includes(report.profile_id);
-  if (filter.type === 'date') return filter.values.includes(report.work_date);
   if (filter.type === 'commission') return filter.values.includes(String(report.commission_number || ''));
   if (filter.type === 'expenses') return Number(report.expenses_amount || 0) + Number(report.other_costs_amount || 0) > 0;
   if (filter.type === 'attachments') return Array.isArray(report.attachments) && report.attachments.length > 0;
@@ -2437,9 +2445,11 @@ function matchesReportColumnFilter(report) {
 
 function getSortedFilteredReports() {
   return [...getFilteredReports()].sort((a, b) => {
-    const profileCompare = (getProfileById(a.profile_id)?.full_name ?? '').localeCompare(getProfileById(b.profile_id)?.full_name ?? '');
-    if (profileCompare !== 0) return profileCompare;
-    return `${a.work_date}${a.start_time}`.localeCompare(`${b.work_date}${b.start_time}`);
+    const dateCompare = `${a.work_date || ''}${a.start_time || ''}`.localeCompare(`${b.work_date || ''}${b.start_time || ''}`);
+    if (dateCompare !== 0) {
+      return state.reportsDateSortDescending ? -dateCompare : dateCompare;
+    }
+    return (getProfileById(a.profile_id)?.full_name ?? '').localeCompare(getProfileById(b.profile_id)?.full_name ?? '');
   });
 }
 
@@ -7872,10 +7882,6 @@ function openReportsColumnFilter(type) {
   if (type === 'employee') {
     const options = getReportableProfiles().map((p) => ({ value: p.id, label: p.full_name || 'Unbekannt' }));
     content = buildMultiFilterMarkup(type, options, 'Mitarbeiter filtern');
-  } else if (type === 'date') {
-    const week = getWeekRange(state.selectedWeek);
-    const days = Array.from({ length: 7 }, (_, i) => addDays(week.start, i));
-    content = buildMultiFilterMarkup(type, days.map((d) => ({ value: d, label: formatDate(d) })), 'Datum filtern');
   } else if (type === 'commission') {
     const values = [...new Set(reports.map((r) => String(r.commission_number || '')).filter(Boolean))].sort();
     content = buildMultiFilterMarkup(type, values.map((v) => ({ value: v, label: v })), 'Kommission filtern');
@@ -7885,12 +7891,12 @@ function openReportsColumnFilter(type) {
     content = `<strong>${label}</strong><label class="employee-filter-option"><input type="checkbox" id="singleFilterToggle" ${checked?'checked':''}/> <span>Aktivieren</span></label><button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button>`;
   }
   elements.reportsColumnFilterPopover.innerHTML = content;
-  elements.reportsColumnFilterPopover.classList.remove('hidden');
+  elements.reportsColumnFilterModal?.classList.remove('hidden');
   elements.reportsColumnFilterPopover.dataset.filterType = type;
   document.getElementById('confirmColumnFilter')?.addEventListener('click', applyColumnFilterFromPopover);
 }
 function buildMultiFilterMarkup(type, options, title){return `<strong>${title}</strong>${options.map(o=>`<label class="employee-filter-option"><input type="checkbox" value="${escapeAttribute(o.value)}" ${state.reportColumnFilter.type===type&&state.reportColumnFilter.values.includes(o.value)?'checked':''}/> <span>${escapeHtml(o.label)}</span></label>`).join('')}<button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button>`;}
-function applyColumnFilterFromPopover(){const t=elements.reportsColumnFilterPopover?.dataset.filterType;if(!t)return;let values=[];if(t==='expenses'||t==='attachments'){if(document.getElementById('singleFilterToggle')?.checked)values=['1'];}else{values=Array.from(elements.reportsColumnFilterPopover.querySelectorAll('input[type="checkbox"]:checked')).map((el)=>el.value);}state.reportColumnFilter={type:values.length?t:'none',values};state.reportsPage=1;elements.reportsColumnFilterPopover.classList.add('hidden');renderReportsTable();}
-function handleGlobalColumnFilterDismiss(event){if(elements.reportsColumnFilterPopover?.classList.contains('hidden')) return; if (elements.reportsColumnFilterPopover.contains(event.target)) return; if (event.target.closest('.report-column-filter-trigger')) return; elements.reportsColumnFilterPopover.classList.add('hidden');}
+function applyColumnFilterFromPopover(){const t=elements.reportsColumnFilterPopover?.dataset.filterType;if(!t)return;let values=[];if(t==='expenses'||t==='attachments'){if(document.getElementById('singleFilterToggle')?.checked)values=['1'];}else{values=Array.from(elements.reportsColumnFilterPopover.querySelectorAll('input[type="checkbox"]:checked')).map((el)=>el.value);}state.reportColumnFilter={type:values.length?t:'none',values};state.reportsPage=1;elements.reportsColumnFilterModal?.classList.add('hidden');renderReportsTable();}
+function handleGlobalColumnFilterDismiss(event){if(elements.reportsColumnFilterModal?.classList.contains('hidden')) return; if (elements.reportsColumnFilterPopover.contains(event.target) || event.target.closest('.modal-card')) return; if (event.target.closest('.report-column-filter-trigger')) return; if (event.target?.matches?.('[data-close-reports-filter-modal=\"true\"]')) { elements.reportsColumnFilterModal.classList.add('hidden'); return; } if (event.target === elements.reportsColumnFilterModal) elements.reportsColumnFilterModal.classList.add('hidden');}
 
 function addDays(isoDate,days){const d=new Date(`${isoDate}T00:00:00`);d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
