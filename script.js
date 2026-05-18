@@ -885,6 +885,7 @@ function cacheElements() {
   elements.editEmployeeName = document.getElementById('editEmployeeName');
   elements.editWorkDate = document.getElementById('editWorkDate');
   elements.editCommissionNumber = document.getElementById('editCommissionNumber');
+  elements.editProjectName = document.getElementById('editProjectName');
   elements.editStartTime = document.getElementById('editStartTime');
   elements.editEndTime = document.getElementById('editEndTime');
   elements.editTotalMinutes = document.getElementById('editTotalMinutes');
@@ -4010,6 +4011,7 @@ function openReportEditModal(reportId) {
   elements.editEmployeeName.value = profile?.full_name ?? 'Unbekannt';
   elements.editWorkDate.value = report.work_date || '';
   elements.editCommissionNumber.value = report.commission_number || '';
+  elements.editProjectName.value = report.project_name || '';
   elements.editStartTime.value = normalizeTimeForInput(report.start_time);
   elements.editEndTime.value = normalizeTimeForInput(report.end_time);
   elements.editTotalMinutes.value = Number(report.total_work_minutes || 0);
@@ -4022,6 +4024,7 @@ function openReportEditModal(reportId) {
   if (elements.reportEditAttachments) {
     elements.reportEditAttachments.innerHTML = renderAttachmentLinks(report.attachments);
   }
+  applyReportEditTimeFieldState(report);
   elements.reportEditModal.classList.remove('hidden');
 }
 
@@ -4033,6 +4036,8 @@ function closeReportEditModal() {
   }
 
   elements.reportEditModal.classList.add('hidden');
+  elements.editStartTime.disabled = false;
+  elements.editEndTime.disabled = false;
   elements.reportEditForm.reset();
   if (elements.reportEditAttachments) {
     elements.reportEditAttachments.innerHTML = '';
@@ -4098,6 +4103,9 @@ async function handleAdjustedMinutesSubmit(event) {
 }
 
 function syncEditedWorkMinutesWithTimeRange() {
+  if (elements.editStartTime.disabled || elements.editEndTime.disabled) {
+    return;
+  }
   const startMinutes = parseTimeToMinutes(elements.editStartTime.value);
   const endMinutes = parseTimeToMinutes(elements.editEndTime.value);
   if (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes)) {
@@ -4114,6 +4122,17 @@ function syncEditedWorkMinutesWithTimeRange() {
   elements.editTotalMinutes.value = String(workMinutes);
 }
 
+function isZeroTimeValue(value) {
+  const normalized = String(value || '').trim();
+  return normalized === '00:00' || normalized === '00:00:00';
+}
+
+function applyReportEditTimeFieldState(report) {
+  const lockTimeFields = isZeroTimeValue(report?.start_time) && isZeroTimeValue(report?.end_time);
+  elements.editStartTime.disabled = lockTimeFields;
+  elements.editEndTime.disabled = lockTimeFields;
+}
+
 async function handleReportEditSubmit(event) {
   event.preventDefault();
   if (!state.editingReportId || state.isSavingReport) {
@@ -4122,6 +4141,10 @@ async function handleReportEditSubmit(event) {
 
   const reportId = state.editingReportId;
   const existingReport = state.weeklyReports.find((item) => String(item.id) === String(reportId));
+  if (!existingReport) {
+    closeReportEditModal();
+    return;
+  }
   syncEditedWorkMinutesWithTimeRange();
   const totalWorkMinutes = Math.max(0, Number(elements.editTotalMinutes.value || 0));
   const pauseMinutes = Math.max(0, Number(elements.editPauseMinutes.value || 0));
@@ -4132,8 +4155,8 @@ async function handleReportEditSubmit(event) {
     work_date: elements.editWorkDate.value,
     ...getIsoYearAndWeekFromDateString(elements.editWorkDate.value),
     commission_number: elements.editCommissionNumber.value.trim(),
-    start_time: elements.editStartTime.value,
-    end_time: elements.editEndTime.value,
+    start_time: elements.editStartTime.disabled ? (existingReport.start_time || '00:00:00') : elements.editStartTime.value,
+    end_time: elements.editEndTime.disabled ? (existingReport.end_time || '00:00:00') : elements.editEndTime.value,
     lunch_break_minutes: pauseMinutes,
     additional_break_minutes: 0,
     total_work_minutes: totalWorkMinutes,
