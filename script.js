@@ -713,12 +713,8 @@ const state = {
   dispoAssignContext: null,
   dispoAllowMultiplePerDay: true,
   selectedProjectId: null,
-  employeeFilterQuery: '',
-  selectedEmployeeIds: [],
-  employeeSelectionInitialized: false,
-  employeeSelectionTouched: false,
+  reportColumnFilter: { type: 'none', values: [] },
   showControlledReports: false,
-  reportsQuickFilter: 'all',
   absenceFilterQuery: '',
   selectedAbsenceEmployeeIds: [],
   absenceSelectionInitialized: false,
@@ -843,16 +839,15 @@ function cacheElements() {
   elements.missingReports = document.getElementById('missingReports');
   elements.submissionList = document.getElementById('submissionList');
   elements.missingList = document.getElementById('missingList');
-  elements.selectedEmployeesSummary = document.getElementById('selectedEmployeesSummary');
-  elements.employeeFilterInput = document.getElementById('employeeFilterInput');
-  elements.employeeFilterList = document.getElementById('employeeFilterList');
-  elements.selectAllEmployeesButton = document.getElementById('selectAllEmployeesButton');
-  elements.clearEmployeeSelectionButton = document.getElementById('clearEmployeeSelectionButton');
-  elements.filterAbsenceReportsButton = document.getElementById('filterAbsenceReportsButton');
-  elements.filterExpenseReportsButton = document.getElementById('filterExpenseReportsButton');
   elements.reportsToolbarPlaceholderButton = document.getElementById('reportsToolbarPlaceholderButton');
   elements.showControlledReportsToggle = document.getElementById('showControlledReportsToggle');
   elements.showControlledReportsInput = document.getElementById('showControlledReportsInput');
+  elements.reportsFilterEmployeeButton = document.getElementById('reportsFilterEmployeeButton');
+  elements.reportsFilterDateButton = document.getElementById('reportsFilterDateButton');
+  elements.reportsFilterCommissionButton = document.getElementById('reportsFilterCommissionButton');
+  elements.reportsFilterExpensesButton = document.getElementById('reportsFilterExpensesButton');
+  elements.reportsFilterAttachmentsButton = document.getElementById('reportsFilterAttachmentsButton');
+  elements.reportsColumnFilterPopover = document.getElementById('reportsColumnFilterPopover');
   elements.selectedAbsenceEmployeesSummary = document.getElementById('selectedAbsenceEmployeesSummary');
   elements.absenceFilterInput = document.getElementById('absenceFilterInput');
   elements.absenceFilterList = document.getElementById('absenceFilterList');
@@ -1061,20 +1056,16 @@ function bindEvents() {
     await loadData();
   });
   elements.exportPdfButton.addEventListener('click', exportWeekPdf);
-  elements.employeeFilterInput.addEventListener('input', handleEmployeeFilterInput);
-  elements.selectAllEmployeesButton.addEventListener('click', selectAllEmployees);
-  elements.clearEmployeeSelectionButton.addEventListener('click', clearEmployeeSelection);
-  if (elements.filterAbsenceReportsButton) {
-    elements.filterAbsenceReportsButton.addEventListener('click', () => toggleReportsQuickFilter('absence'));
-  }
-  if (elements.filterExpenseReportsButton) {
-    elements.filterExpenseReportsButton.addEventListener('click', () => toggleReportsQuickFilter('expenses'));
-  }
+  elements.reportsFilterEmployeeButton?.addEventListener('click', () => openReportsColumnFilter('employee'));
+  elements.reportsFilterDateButton?.addEventListener('click', () => openReportsColumnFilter('date'));
+  elements.reportsFilterCommissionButton?.addEventListener('click', () => openReportsColumnFilter('commission'));
+  elements.reportsFilterExpensesButton?.addEventListener('click', () => openReportsColumnFilter('expenses'));
+  elements.reportsFilterAttachmentsButton?.addEventListener('click', () => openReportsColumnFilter('attachments'));
   if (elements.reportsToolbarPlaceholderButton) {
     elements.reportsToolbarPlaceholderButton.addEventListener('click', openBulkConfirmModal);
   }
   elements.showControlledReportsInput.addEventListener('change', handleShowControlledReportsToggle);
-  elements.employeeFilterList.addEventListener('change', handleEmployeeSelectionChange);
+  document.addEventListener('click', handleGlobalColumnFilterDismiss);
   if (elements.absenceFilterInput) elements.absenceFilterInput.addEventListener('input', handleAbsenceFilterInput);
   if (elements.selectAllAbsenceEmployeesButton) elements.selectAllAbsenceEmployeesButton.addEventListener('click', selectAllAbsenceEmployees);
   if (elements.clearAbsenceSelectionButton) elements.clearAbsenceSelectionButton.addEventListener('click', clearAbsenceSelection);
@@ -1612,14 +1603,9 @@ function resetAppState() {
   state.crmContacts = [];
   state.crmNotes = [];
   state.selectedCrmContactId = null;
-  state.employeeFilterQuery = '';
   state.projectSearchQuery = '';
   state.editingProjectId = null;
-  state.selectedEmployeeIds = [];
-  state.employeeSelectionInitialized = false;
-  state.employeeSelectionTouched = false;
   state.showControlledReports = false;
-  state.reportsQuickFilter = 'all';
   state.absenceFilterQuery = '';
   state.selectedAbsenceEmployeeIds = [];
   state.absenceSelectionInitialized = false;
@@ -2089,39 +2075,8 @@ function renderReportStats() {
 }
 
 function renderEmployeeFilters() {
-  elements.employeeFilterInput.value = state.employeeFilterQuery;
-  if (elements.showControlledReportsInput) {
-    elements.showControlledReportsInput.checked = state.showControlledReports;
-  }
-  if (elements.showControlledReportsToggle) {
-    elements.showControlledReportsToggle.classList.toggle('is-active', state.showControlledReports);
-  }
-  if (elements.filterAbsenceReportsButton) {
-    elements.filterAbsenceReportsButton.classList.toggle('is-active', state.reportsQuickFilter === 'absence');
-  }
-  if (elements.filterExpenseReportsButton) {
-    elements.filterExpenseReportsButton.classList.toggle('is-active', state.reportsQuickFilter === 'expenses');
-  }
-  const profiles = getReportableProfiles();
-  const visibleProfiles = getMatchingProfiles(profiles, state.employeeFilterQuery).slice(0, MAX_VISIBLE_FILTER_OPTIONS);
-
-  elements.selectedEmployeesSummary.textContent = `${state.selectedEmployeeIds.length} von ${profiles.length} Mitarbeitenden ausgewählt`;
-
-  if (!profiles.length) {
-    elements.employeeFilterList.innerHTML = '<div class="empty-state">Keine Mitarbeitenden vorhanden.</div>';
-    return;
-  }
-
-  elements.employeeFilterList.innerHTML = visibleProfiles.length
-    ? visibleProfiles
-        .map((profile) => `
-          <label class="employee-filter-option">
-            <input type="checkbox" value="${escapeAttribute(profile.id)}" ${state.selectedEmployeeIds.includes(profile.id) ? 'checked' : ''} />
-            <span>${escapeHtml(profile.full_name)}</span>
-          </label>
-        `)
-        .join('')
-    : '<div class="empty-state">Keine Mitarbeitenden für diesen Suchbegriff gefunden.</div>';
+  if (elements.showControlledReportsInput) elements.showControlledReportsInput.checked = state.showControlledReports;
+  if (elements.showControlledReportsToggle) elements.showControlledReportsToggle.classList.toggle('is-active', state.showControlledReports);
 }
 
 function renderAbsenceFilters() {
@@ -2156,7 +2111,7 @@ function renderAbsenceFilters() {
 
 function renderReportsTable() {
   if (state.isLoadingData) {
-    elements.reportsTableBody.innerHTML = `<tr><td colspan="10">Rapporte für ${escapeHtml(getWeekLabel(state.selectedWeek))} werden geladen …</td></tr>`;
+    elements.reportsTableBody.innerHTML = `<tr><td colspan="8">Rapporte für ${escapeHtml(getWeekLabel(state.selectedWeek))} werden geladen …</td></tr>`;
     renderReportsPagination({ totalItems: 0, totalPages: 1, currentPage: 1, startIndex: 0, endIndex: 0 });
     return;
   }
@@ -2165,13 +2120,13 @@ function renderReportsTable() {
   const pagination = getReportsPaginationMeta(allReports);
 
   if (!state.weeklyReports.length) {
-    elements.reportsTableBody.innerHTML = `<tr><td colspan="10">Keine Rapporte in dieser Woche gefunden.</td></tr>`;
+    elements.reportsTableBody.innerHTML = `<tr><td colspan="8">Keine Rapporte in dieser Woche gefunden.</td></tr>`;
     renderReportsPagination(pagination);
     return;
   }
 
   if (!allReports.length) {
-    elements.reportsTableBody.innerHTML = `<tr><td colspan="10">Für die aktuelle Auswahl wurden keine Rapporte gefunden.</td></tr>`;
+    elements.reportsTableBody.innerHTML = `<tr><td colspan="8">Für die aktuelle Auswahl wurden keine Rapporte gefunden.</td></tr>`;
     renderReportsPagination(pagination);
     return;
   }
@@ -2185,13 +2140,7 @@ function renderReportsTable() {
           <td>${renderControllCell(report)}</td>
           <td>${formatDate(report.work_date)}</td>
           <td>${escapeHtml(report.commission_number || '–')}</td>
-          <td>${formatTimeRange(report.start_time, report.end_time)}</td>
           <td>${formatMinutes(report.total_work_minutes)}</td>
-          <td>
-            <button class="adjusted-time-button" type="button" data-action="edit-adjusted-time" data-report-id="${escapeAttribute(report.id)}">
-              ${formatMinutes(getAdjustedWorkMinutes(report))}
-            </button>
-          </td>
           <td>${formatCurrency(Number(report.expenses_amount || 0) + Number(report.other_costs_amount || 0))}</td>
           <td>${renderAttachmentLinks(report.attachments)}</td>
           <td>
@@ -2392,11 +2341,6 @@ function renderSubmissionLists() {
   }
 }
 
-function handleEmployeeFilterInput(event) {
-  state.employeeFilterQuery = event.target.value;
-  state.reportsPage = 1;
-  renderEmployeeFilters();
-}
 
 function handleAbsenceFilterInput(event) {
   state.absenceFilterQuery = event.target.value;
@@ -2409,12 +2353,6 @@ function handleShowControlledReportsToggle() {
   renderReportsTable();
 }
 
-function toggleReportsQuickFilter(filterName) {
-  state.reportsQuickFilter = state.reportsQuickFilter === filterName ? 'all' : filterName;
-  state.reportsPage = 1;
-  renderReportsTable();
-  renderEmployeeFilters();
-}
 
 function handleShowControlledAbsencesToggle() {
   state.showControlledAbsences = Boolean(elements.showControlledAbsencesInput?.checked);
@@ -2426,25 +2364,6 @@ function handleDispoMultiEntryToggle() {
   renderDispoPlanner();
 }
 
-function handleEmployeeSelectionChange(event) {
-  if (event.target?.type !== 'checkbox') {
-    return;
-  }
-
-  const profileId = event.target.value;
-  if (event.target.checked) {
-    if (!state.selectedEmployeeIds.includes(profileId)) {
-      state.selectedEmployeeIds = [...state.selectedEmployeeIds, profileId];
-    }
-  } else {
-    state.selectedEmployeeIds = state.selectedEmployeeIds.filter((id) => id !== profileId);
-  }
-
-  state.employeeSelectionInitialized = true;
-  state.employeeSelectionTouched = true;
-  state.reportsPage = 1;
-  render();
-}
 
 function handleAbsenceSelectionChange(event) {
   if (event.target?.type !== 'checkbox') {
@@ -2465,23 +2384,6 @@ function handleAbsenceSelectionChange(event) {
   render();
 }
 
-async function selectAllEmployees() {
-  state.reportsQuickFilter = 'all';
-  await loadData();
-  state.selectedEmployeeIds = getAvailableReportProfileIds();
-  state.employeeSelectionInitialized = true;
-  state.employeeSelectionTouched = true;
-  state.reportsPage = 1;
-  render();
-}
-
-function clearEmployeeSelection() {
-  state.selectedEmployeeIds = [];
-  state.employeeSelectionInitialized = true;
-  state.employeeSelectionTouched = true;
-  state.reportsPage = 1;
-  render();
-}
 
 function selectAllAbsenceEmployees() {
   state.selectedAbsenceEmployeeIds = getAvailableAbsenceProfileIds();
@@ -2497,28 +2399,6 @@ function clearAbsenceSelection() {
   render();
 }
 
-function syncEmployeeSelection() {
-  const validIds = getAvailableReportProfileIds();
-  const validIdSet = new Set(validIds);
-  const selected = state.selectedEmployeeIds.filter((id) => validIdSet.has(id));
-
-  if (!state.employeeSelectionInitialized) {
-    state.selectedEmployeeIds = [];
-    state.employeeSelectionInitialized = true;
-    state.reportsPage = 1;
-    return;
-  }
-
-  if (!state.employeeSelectionTouched) {
-    state.selectedEmployeeIds = [];
-    state.reportsPage = 1;
-    return;
-  }
-
-  state.selectedEmployeeIds = validIds.length ? selected : [];
-  const pageCount = Math.max(1, Math.ceil(getSortedFilteredReports().length / state.reportsPerPage));
-  state.reportsPage = Math.min(state.reportsPage, pageCount);
-}
 
 function syncAbsenceSelection() {
   const validIds = getAvailableAbsenceProfileIds();
@@ -2540,26 +2420,18 @@ function syncAbsenceSelection() {
 }
 
 function getFilteredReports() {
-  const selectedIds = new Set(state.selectedEmployeeIds);
   return state.weeklyReports
-    .filter((report) => selectedIds.has(report.profile_id))
     .filter((report) => state.showControlledReports || !String(report.controll || '').trim())
-    .filter((report) => matchesReportsQuickFilter(report));
+    .filter((report) => matchesReportColumnFilter(report));
 }
 
-function matchesReportsQuickFilter(report) {
-  if (state.reportsQuickFilter === 'absence') {
-    const absenceTypeCode = Number(getAbsenceTypeCode(report));
-    return Number.isInteger(absenceTypeCode) && absenceTypeCode >= 1 && absenceTypeCode <= 8;
-  }
-
-  if (state.reportsQuickFilter === 'expenses') {
-    const hasAttachments = Array.isArray(report.attachments) && report.attachments.length > 0;
-    const otherCosts = Number(report.other_costs ?? report.other_cost ?? 0);
-    const expenses = Number(report.expenses ?? 0);
-    return hasAttachments || otherCosts > 0 || expenses > 0;
-  }
-
+function matchesReportColumnFilter(report) {
+  const filter = state.reportColumnFilter || { type: 'none', values: [] };
+  if (filter.type === 'employee') return filter.values.includes(report.profile_id);
+  if (filter.type === 'date') return filter.values.includes(report.work_date);
+  if (filter.type === 'commission') return filter.values.includes(String(report.commission_number || ''));
+  if (filter.type === 'expenses') return Number(report.expenses_amount || 0) + Number(report.other_costs_amount || 0) > 0;
+  if (filter.type === 'attachments') return Array.isArray(report.attachments) && report.attachments.length > 0;
   return true;
 }
 
@@ -7529,9 +7401,8 @@ function formatHours(totalMinutes) {
 
 function getIncompleteSubmissionProfiles({ selectedOnly = false } = {}) {
   const groups = groupReportsByProfile(state.weeklyReports);
-  const selectedIds = new Set(state.selectedEmployeeIds);
   return getReportableProfiles().flatMap((profile) => {
-    if (selectedOnly && !selectedIds.has(profile.id)) {
+    if (selectedOnly && state.reportColumnFilter.type === 'employee' && !state.reportColumnFilter.values.includes(profile.id)) {
       return [];
     }
 
@@ -7993,3 +7864,33 @@ async function fileToDataUrl(url) {
     reader.readAsDataURL(blob);
   });
 }
+
+function openReportsColumnFilter(type) {
+  if (!elements.reportsColumnFilterPopover) return;
+  const reports = [...state.weeklyReports];
+  let content = '';
+  if (type === 'employee') {
+    const options = getReportableProfiles().map((p) => ({ value: p.id, label: p.full_name || 'Unbekannt' }));
+    content = buildMultiFilterMarkup(type, options, 'Mitarbeiter filtern');
+  } else if (type === 'date') {
+    const week = getWeekRange(state.selectedWeek);
+    const days = Array.from({ length: 7 }, (_, i) => addDays(week.start, i));
+    content = buildMultiFilterMarkup(type, days.map((d) => ({ value: d, label: formatDate(d) })), 'Datum filtern');
+  } else if (type === 'commission') {
+    const values = [...new Set(reports.map((r) => String(r.commission_number || '')).filter(Boolean))].sort();
+    content = buildMultiFilterMarkup(type, values.map((v) => ({ value: v, label: v })), 'Kommission filtern');
+  } else if (type === 'expenses' || type === 'attachments') {
+    const checked = state.reportColumnFilter.type === type;
+    const label = type === 'expenses' ? 'Nur Rapporte mit Spesen anzeigen' : 'Nur Rapporte mit Anhängen anzeigen';
+    content = `<strong>${label}</strong><label class="employee-filter-option"><input type="checkbox" id="singleFilterToggle" ${checked?'checked':''}/> <span>Aktivieren</span></label><button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button>`;
+  }
+  elements.reportsColumnFilterPopover.innerHTML = content;
+  elements.reportsColumnFilterPopover.classList.remove('hidden');
+  elements.reportsColumnFilterPopover.dataset.filterType = type;
+  document.getElementById('confirmColumnFilter')?.addEventListener('click', applyColumnFilterFromPopover);
+}
+function buildMultiFilterMarkup(type, options, title){return `<strong>${title}</strong>${options.map(o=>`<label class="employee-filter-option"><input type="checkbox" value="${escapeAttribute(o.value)}" ${state.reportColumnFilter.type===type&&state.reportColumnFilter.values.includes(o.value)?'checked':''}/> <span>${escapeHtml(o.label)}</span></label>`).join('')}<button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button>`;}
+function applyColumnFilterFromPopover(){const t=elements.reportsColumnFilterPopover?.dataset.filterType;if(!t)return;let values=[];if(t==='expenses'||t==='attachments'){if(document.getElementById('singleFilterToggle')?.checked)values=['1'];}else{values=Array.from(elements.reportsColumnFilterPopover.querySelectorAll('input[type="checkbox"]:checked')).map((el)=>el.value);}state.reportColumnFilter={type:values.length?t:'none',values};state.reportsPage=1;elements.reportsColumnFilterPopover.classList.add('hidden');renderReportsTable();}
+function handleGlobalColumnFilterDismiss(event){if(elements.reportsColumnFilterPopover?.classList.contains('hidden')) return; if (elements.reportsColumnFilterPopover.contains(event.target)) return; if (event.target.closest('.report-column-filter-trigger')) return; elements.reportsColumnFilterPopover.classList.add('hidden');}
+
+function addDays(isoDate,days){const d=new Date(`${isoDate}T00:00:00`);d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
