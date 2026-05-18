@@ -143,53 +143,30 @@
 
               <div class="report-filter-panel">
                 <div class="report-filter-toolbar">
-                  <label class="report-filter-search-label">
-                    <span>Mitarbeiter suchen</span>
-                    <input id="employeeFilterInput" type="search" placeholder="Nach Vor- oder Nachname suchen" />
-                  </label>
-                  <button id="reportsToolbarPlaceholderButton" class="button button-secondary report-filter-icon-button" type="button" title="Sammelbestätigung (Projektleiter)" aria-label="Sammelbestätigung (Projektleiter)">✅</button>
-                  <button id="selectAllEmployeesButton" class="button button-secondary report-filter-icon-button" type="button" title="Alle auswählen" aria-label="Alle auswählen">
-                    <span aria-hidden="true">☑️</span>
-                  </button>
-                  <button id="clearEmployeeSelectionButton" class="button button-secondary report-filter-icon-button" type="button" title="Auswahl leeren" aria-label="Auswahl leeren">
-                    <span aria-hidden="true">🧹</span>
-                  </button>
-                  <button id="filterAbsenceReportsButton" class="button button-secondary" type="button" title="Absenzen anzeigen" aria-label="Absenzen anzeigen">
-                    Absenzen anzeigen
-                  </button>
-                  <button id="filterExpenseReportsButton" class="button button-secondary" type="button" title="Rapporte mit Spesen" aria-label="Rapporte mit Spesen">
-                    Rapporte mit Spesen
-                  </button>
                   <label id="showControlledReportsToggle" class="button button-secondary report-filter-checkbox-button report-controlled-toggle" title="Kundenrapporte anzeigen" aria-label="Kundenrapporte anzeigen">
                     <input id="showControlledReportsInput" type="checkbox" />
                   </label>
                 </div>
-                <div class="employee-directory-heading">
-                  <strong>Alle Mitarbeitenden</strong>
-                  <span class="subtle-text">Maximal 5 Treffer werden angezeigt.</span>
-                </div>
-                <div id="employeeFilterList" class="employee-filter-list"></div>
               </div>
 
               <div class="table-wrapper">
                 <table>
                   <thead>
                     <tr>
-                      <th>Mitarbeiter</th>
+                      <th><button id="reportsFilterEmployeeButton" class="report-column-filter-trigger" type="button">Mitarbeiter</button></th>
                       <th>Kontrolle</th>
-                      <th>Datum</th>
-                      <th>Kommission</th>
-                      <th>Zeit</th>
+                      <th><button id="reportsFilterDateButton" class="report-column-filter-trigger" type="button">Datum</button></th>
+                      <th><button id="reportsFilterCommissionButton" class="report-column-filter-trigger" type="button">Kommission</button></th>
                       <th>Arbeitszeit</th>
-                      <th>Bereinigte Arbeitszeit</th>
-                      <th>Spesen</th>
-                      <th>Anhänge</th>
+                      <th><button id="reportsFilterExpensesButton" class="report-column-filter-trigger" type="button">Spesen</button></th>
+                      <th><button id="reportsFilterAttachmentsButton" class="report-column-filter-trigger" type="button">Anhänge</button></th>
                       <th>Aktion</th>
                     </tr>
                   </thead>
                   <tbody id="reportsTableBody"></tbody>
                 </table>
               </div>
+              <div id="reportsColumnFilterPopover" class="column-filter-popover hidden"></div>
 
               <div class="table-pagination">
                 <button id="reportsPrevPageButton" class="button button-secondary" type="button">Zurück</button>
