@@ -729,6 +729,8 @@ const state = {
   isRejectedAbsencesModalOpen: false,
   isBulkConfirmModalOpen: false,
   bulkConfirmSelectedProjectId: '',
+  bulkConfirmWeekdayFilter: '',
+  bulkConfirmCommissionFilter: '',
   isBulkConfirmSaving: false,
   bulkConfirmResultMessage: '',
   bulkConfirmResultIsError: false,
@@ -867,6 +869,9 @@ function cacheElements() {
   elements.bulkConfirmModal = document.getElementById('bulkConfirmModal');
   elements.closeBulkConfirmModalButton = document.getElementById('closeBulkConfirmModalButton');
   elements.bulkConfirmProjectSelect = document.getElementById('bulkConfirmProjectSelect');
+  elements.bulkConfirmWeekdaySelect = document.getElementById('bulkConfirmWeekdaySelect');
+  elements.bulkConfirmCommissionInput = document.getElementById('bulkConfirmCommissionInput');
+  elements.bulkConfirmSearchButton = document.getElementById('bulkConfirmSearchButton');
   elements.bulkConfirmTableBody = document.getElementById('bulkConfirmTableBody');
   elements.bulkConfirmSubmitButton = document.getElementById('bulkConfirmSubmitButton');
   elements.bulkConfirmResultMessage = document.getElementById('bulkConfirmResultMessage');
@@ -1088,6 +1093,9 @@ function bindEvents() {
   }
   if (elements.bulkConfirmProjectSelect) {
     elements.bulkConfirmProjectSelect.addEventListener('change', handleBulkConfirmProjectSelectionChange);
+  }
+  if (elements.bulkConfirmSearchButton) {
+    elements.bulkConfirmSearchButton.addEventListener('click', handleBulkConfirmSearch);
   }
   if (elements.bulkConfirmSubmitButton) {
     elements.bulkConfirmSubmitButton.addEventListener('click', handleBulkConfirmSubmit);
@@ -3960,6 +3968,8 @@ async function handleBulkConfirmSubmit() {
 
   const reportsToConfirm = state.weeklyReports.filter((report) => (
     String(report.commission_number || '').trim() === String(project.commission_number || '').trim()
+    && (!state.bulkConfirmCommissionFilter || String(report.commission_number || '').trim().toLowerCase() === state.bulkConfirmCommissionFilter.trim().toLowerCase())
+    && (!state.bulkConfirmWeekdayFilter || String(getIsoWeekdayFromDate(report.work_date)) === String(state.bulkConfirmWeekdayFilter))
     && !String(report.controll || '').trim()
   ));
   if (!reportsToConfirm.length) {
@@ -6191,7 +6201,19 @@ function getBulkConfirmProjectSummaries(projectId) {
   if (!project) {
     return [];
   }
-  const reports = state.weeklyReports.filter((report) => String(report.commission_number || '').trim() === String(project.commission_number || '').trim());
+  const reports = state.weeklyReports.filter((report) => {
+    const commissionMatchesProject = String(report.commission_number || '').trim() === String(project.commission_number || '').trim();
+    if (!commissionMatchesProject) return false;
+    if (state.bulkConfirmCommissionFilter) {
+      const reportCommission = String(report.commission_number || '').trim().toLowerCase();
+      if (reportCommission !== state.bulkConfirmCommissionFilter.trim().toLowerCase()) return false;
+    }
+    if (state.bulkConfirmWeekdayFilter) {
+      const reportIsoWeekday = getIsoWeekdayFromDate(report.work_date);
+      if (String(reportIsoWeekday) !== String(state.bulkConfirmWeekdayFilter)) return false;
+    }
+    return true;
+  });
   const groupedByProfile = new Map();
 
   for (const report of reports) {
@@ -6278,6 +6300,20 @@ function handleBulkConfirmProjectSelectionChange(event) {
   renderBulkConfirmModalState();
 }
 
+function handleBulkConfirmSearch() {
+  state.bulkConfirmCommissionFilter = String(elements.bulkConfirmCommissionInput?.value || '').trim();
+  state.bulkConfirmWeekdayFilter = String(elements.bulkConfirmWeekdaySelect?.value || '').trim();
+  state.bulkConfirmResultMessage = '';
+  state.bulkConfirmResultIsError = false;
+  renderBulkConfirmModalState();
+}
+
+function getIsoWeekdayFromDate(dateValue) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  const day = date.getDay();
+  return day === 0 ? 7 : day;
+}
+
 function renderBulkConfirmModalState() {
   if (!elements.bulkConfirmModal || !elements.bulkConfirmProjectSelect || !elements.bulkConfirmTableBody || !elements.bulkConfirmSubmitButton) {
     return;
@@ -6296,6 +6332,17 @@ function renderBulkConfirmModalState() {
     : '<option value="">Keine Projekte</option>';
   elements.bulkConfirmProjectSelect.value = state.bulkConfirmSelectedProjectId || '';
   elements.bulkConfirmProjectSelect.disabled = !leadProjects.length || state.isBulkConfirmSaving;
+  if (elements.bulkConfirmWeekdaySelect) {
+    elements.bulkConfirmWeekdaySelect.value = state.bulkConfirmWeekdayFilter || '';
+    elements.bulkConfirmWeekdaySelect.disabled = state.isBulkConfirmSaving;
+  }
+  if (elements.bulkConfirmCommissionInput) {
+    elements.bulkConfirmCommissionInput.value = state.bulkConfirmCommissionFilter || '';
+    elements.bulkConfirmCommissionInput.disabled = state.isBulkConfirmSaving;
+  }
+  if (elements.bulkConfirmSearchButton) {
+    elements.bulkConfirmSearchButton.disabled = state.isBulkConfirmSaving;
+  }
 
   const summaries = getBulkConfirmProjectSummaries(state.bulkConfirmSelectedProjectId);
   elements.bulkConfirmTableBody.innerHTML = summaries.length

@@ -968,12 +968,35 @@
           <div class="section-heading compact">
             <div>
               <h3 id="bulkConfirmModalTitle">Sammelbestätigung Wochenrapporte</h3>
-              <p>Alle offenen Rapporte der aktuellen Woche für ein Projekt gesammelt bestätigen.</p>
+              <p>Alle offenen Rapporte bestätigen oder gezielt nach Kommissionsnummer und Wochentag filtern.</p>
             </div>
             <button id="closeBulkConfirmModalButton" class="button button-ghost" type="button">Schliessen</button>
           </div>
 
           <div class="report-edit-form">
+            <div class="grid-two">
+              <label>
+                <span>Wochentag</span>
+                <select id="bulkConfirmWeekdaySelect">
+                  <option value="">Alle</option>
+                  <option value="1">Montag</option>
+                  <option value="2">Dienstag</option>
+                  <option value="3">Mittwoch</option>
+                  <option value="4">Donnerstag</option>
+                  <option value="5">Freitag</option>
+                  <option value="6">Samstag</option>
+                  <option value="7">Sonntag</option>
+                </select>
+              </label>
+              <label>
+                <span>Kommissionsnummer</span>
+                <input id="bulkConfirmCommissionInput" type="text" placeholder="z. B. 12345" />
+              </label>
+            </div>
+            <div class="modal-actions">
+              <button id="bulkConfirmSearchButton" class="button button-secondary" type="button">Suchen</button>
+            </div>
+
             <label>
               <span>Projekt (Projektleiter)</span>
               <select id="bulkConfirmProjectSelect"></select>
