@@ -870,8 +870,6 @@ function cacheElements() {
   elements.bulkConfirmWeekdaySelect = document.getElementById('bulkConfirmWeekdaySelect');
   elements.bulkConfirmCommissionInput = document.getElementById('bulkConfirmCommissionInput');
   elements.bulkConfirmSearchButton = document.getElementById('bulkConfirmSearchButton');
-  elements.bulkConfirmTableBody = document.getElementById('bulkConfirmTableBody');
-  elements.bulkConfirmSubmitButton = document.getElementById('bulkConfirmSubmitButton');
   elements.bulkConfirmResultMessage = document.getElementById('bulkConfirmResultMessage');
   elements.openMissingReportsCallModalButton = document.getElementById('openMissingReportsCallModalButton');
   elements.missingReportsCallModal = document.getElementById('missingReportsCallModal');
@@ -1091,9 +1089,6 @@ function bindEvents() {
   }
   if (elements.bulkConfirmSearchButton) {
     elements.bulkConfirmSearchButton.addEventListener('click', handleBulkConfirmSearch);
-  }
-  if (elements.bulkConfirmSubmitButton) {
-    elements.bulkConfirmSubmitButton.addEventListener('click', handleBulkConfirmSubmit);
   }
   if (elements.openMissingReportsCallModalButton) {
     elements.openMissingReportsCallModalButton.addEventListener('click', openMissingReportsCallModal);
@@ -3947,7 +3942,7 @@ async function handleBulkConfirmSubmit() {
   }
   const reportsToConfirm = getBulkConfirmFilteredReports({ onlyOpenReports: true });
   if (!reportsToConfirm.length) {
-    state.bulkConfirmResultMessage = 'Keine offenen Rapporte zum Bestätigen gefunden.';
+    state.bulkConfirmResultMessage = 'Keine offenen Rapporte für die aktuelle Kalenderwoche und Filter (Wochentag/Kommission) gefunden.';
     state.bulkConfirmResultIsError = false;
     renderBulkConfirmModalState();
     return;
@@ -6182,27 +6177,6 @@ function getBulkConfirmFilteredReports({ onlyOpenReports = false } = {}) {
   });
 }
 
-function getBulkConfirmProjectSummaries() {
-  const reports = getBulkConfirmFilteredReports();
-  const groupedByProfile = new Map();
-
-  for (const report of reports) {
-    const profileId = String(report.profile_id || '');
-    if (!profileId) continue;
-    const existing = groupedByProfile.get(profileId) || { profileId, totalWorkMinutes: 0, totalAdjustedMinutes: 0, openReports: 0 };
-    existing.totalWorkMinutes += Number(report.total_work_minutes || 0);
-    existing.totalAdjustedMinutes += Number(getAdjustedWorkMinutes(report) || 0);
-    if (!String(report.controll || '').trim()) {
-      existing.openReports += 1;
-    }
-    groupedByProfile.set(profileId, existing);
-  }
-
-  return Array.from(groupedByProfile.values())
-    .map((entry) => ({ ...entry, profile: getProfileById(entry.profileId) }))
-    .sort((left, right) => `${left.profile?.full_name || ''}`.localeCompare(`${right.profile?.full_name || ''}`, 'de'));
-}
-
 function openBulkConfirmModal() {
   const leadProjects = getProjectLeadProjects();
   if (!leadProjects.length) {
@@ -6266,6 +6240,7 @@ function handleBulkConfirmSearch() {
   state.bulkConfirmResultMessage = '';
   state.bulkConfirmResultIsError = false;
   renderBulkConfirmModalState();
+  handleBulkConfirmSubmit();
 }
 
 function getIsoWeekdayFromDate(dateValue) {
@@ -6275,7 +6250,7 @@ function getIsoWeekdayFromDate(dateValue) {
 }
 
 function renderBulkConfirmModalState() {
-  if (!elements.bulkConfirmModal || !elements.bulkConfirmTableBody || !elements.bulkConfirmSubmitButton) {
+  if (!elements.bulkConfirmModal) {
     return;
   }
 
@@ -6290,26 +6265,9 @@ function renderBulkConfirmModalState() {
     elements.bulkConfirmCommissionInput.disabled = state.isBulkConfirmSaving;
   }
   if (elements.bulkConfirmSearchButton) {
-    elements.bulkConfirmSearchButton.disabled = state.isBulkConfirmSaving;
+    elements.bulkConfirmSearchButton.disabled = state.isBulkConfirmSaving || !leadProjects.length;
+    elements.bulkConfirmSearchButton.textContent = state.isBulkConfirmSaving ? 'Bestätige …' : 'Suchen & bestätigen';
   }
-
-  const summaries = getBulkConfirmProjectSummaries();
-  elements.bulkConfirmTableBody.innerHTML = summaries.length
-    ? summaries
-        .map((entry) => `
-          <tr>
-            <td>${escapeHtml(entry.profile?.full_name || 'Unbekannt')}</td>
-            <td>${formatMinutes(entry.totalWorkMinutes)}</td>
-            <td>${formatMinutes(entry.totalAdjustedMinutes)}</td>
-            <td>${entry.openReports}</td>
-          </tr>
-        `)
-        .join('')
-    : '<tr><td colspan="4">Keine Rapporte für die aktuelle Filterauswahl gefunden.</td></tr>';
-
-  const openReportCount = summaries.reduce((sum, entry) => sum + Number(entry.openReports || 0), 0);
-  elements.bulkConfirmSubmitButton.disabled = state.isBulkConfirmSaving || !leadProjects.length || !openReportCount;
-  elements.bulkConfirmSubmitButton.textContent = state.isBulkConfirmSaving ? 'Bestätige …' : 'Bestätigen';
 
   if (elements.bulkConfirmResultMessage) {
     elements.bulkConfirmResultMessage.textContent = state.bulkConfirmResultMessage || '';
