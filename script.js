@@ -6900,11 +6900,9 @@ function drawWeeklyReportPage(pdf, { profile, weekRange, calendarWeek, layout })
 
   const totalsY = (pdf.lastAutoTable?.finalY || mainTableY) + 3;
   const absencesY = totalsY + 10;
-  const remarksY = absencesY + layout.absenceRows.length * 6 + 4;
 
   drawWeeklyTotalRow(pdf, { margin: marginLeft, totalsY, contentWidth, totals: layout.totals });
   drawAbsenceTable(pdf, { margin: marginLeft, y: absencesY, width: contentWidth, rows: layout.absenceRows });
-  drawRemarksBox(pdf, { margin: marginLeft, y: remarksY, width: contentWidth, height: 16, notes: layout.notes });
 }
 
 function drawReportHeader(pdf, { profile, weekRange, calendarWeek, marginLeft, contentWidth, nameBoxY, nameBoxHeight }) {
@@ -7013,17 +7011,6 @@ function drawAbsenceTable(pdf, { margin, y, width, rows }) {
   });
 }
 
-function drawRemarksBox(pdf, { margin, y, width, height, notes }) {
-  pdf.rect(margin, y, width, height);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(9);
-  pdf.text('Bemerkung', margin + 1, y + 5);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8);
-  const content = notes.length ? notes.join(' | ') : '–';
-  pdf.text(content, margin + 24, y + 5, { maxWidth: width - 26 });
-}
-
 async function drawAttachmentGalleryPage(pdf, attachments, { profileName, calendarWeek }) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -7066,7 +7053,9 @@ function buildWeeklyMatrixRows(reports) {
     const projectName = String(report.project_name || '').trim();
     const isSchoolLikeEntry = isSchoolOrUkReport(report);
     const commission = isSchoolLikeEntry ? '' : String(report.commission_number || '').trim();
-    const key = `${projectName}__${commission}`;
+    const key = commission
+      ? `commission__${commission.toLowerCase()}`
+      : `project__${projectName.toLowerCase()}__${isSchoolLikeEntry ? 'school' : 'no-commission'}`;
     if (!groups.has(key)) {
       groups.set(key, {
         projectName: isSchoolReport(report) ? 'Berufsschule' : (projectName || 'Ohne Projektname'),
