@@ -6412,7 +6412,13 @@ async function exportWeekPdf() {
       });
 
       const imageAttachments = reports
-        .flatMap((report) => Array.isArray(report.attachments) ? report.attachments : [])
+        .flatMap((report) => {
+          const commissionNumber = String(report.commission_number || '').trim();
+          return (Array.isArray(report.attachments) ? report.attachments : []).map((attachment) => ({
+            ...attachment,
+            commissionNumber,
+          }));
+        })
         .filter((attachment) => isImageAttachment(attachment) && getAttachmentUrl(attachment));
       for (let index = 0; index < imageAttachments.length; index += 2) {
         pdf.addPage();
@@ -7020,7 +7026,8 @@ async function drawAttachmentGalleryPage(pdf, attachments, { profileName, calend
   const contentTopY = 24;
   const slotCount = 2;
   const slotWidth = (pageWidth - margin * 2 - slotGap) / slotCount;
-  const slotHeight = pageHeight - contentTopY - margin;
+  const footerSpace = 12;
+  const slotHeight = pageHeight - contentTopY - margin - footerSpace;
 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(16);
@@ -7043,6 +7050,14 @@ async function drawAttachmentGalleryPage(pdf, attachments, { profileName, calend
       pdf.setFontSize(10);
       pdf.text('Bild konnte nicht geladen werden.', slotX, slotY + 10);
     }
+
+    const commissionNumber = String(attachment?.commissionNumber || '').trim();
+    const caption = commissionNumber
+      ? `Kommissionsnummer: ${commissionNumber}`
+      : 'Kommissionsnummer: –';
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.text(caption, slotX, pageHeight - margin + 2);
   }
 }
 
@@ -7064,6 +7079,7 @@ function buildWeeklyMatrixRows(reports) {
         dailyMinutes: Array(6).fill(0),
         totalMinutes: 0,
         expenses: 0,
+        otherCosts: 0,
         notes: [],
       });
     }
@@ -7081,7 +7097,14 @@ function buildWeeklyMatrixRows(reports) {
     current.dailyMinutes[dayIndex] += Number(report.total_work_minutes || 0);
     current.totalMinutes += Number(report.total_work_minutes || 0);
     current.expenses += Number(report.expenses_amount || 0) + Number(report.other_costs_amount || 0);
+    current.otherCosts += Number(report.other_costs_amount || 0);
     if (report.notes) current.notes.push(report.notes);
+  });
+
+  groups.forEach((row) => {
+    if (row.otherCosts > 0) {
+      row.notes.push(`Sonstige Auslagen: ${formatCurrency(row.otherCosts)}`);
+    }
   });
 
   return [...groups.values()];
