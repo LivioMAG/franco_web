@@ -7967,8 +7967,26 @@ function openReportsColumnFilter(type) {
   elements.reportsColumnFilterModal?.classList.remove('hidden');
   elements.reportsColumnFilterPopover.dataset.filterType = type;
   document.getElementById('confirmColumnFilter')?.addEventListener('click', applyColumnFilterFromPopover);
+  document.getElementById('columnFilterSearchInput')?.addEventListener('input', handleColumnFilterSearchInput);
+  document.getElementById('clearColumnFilterSelectionButton')?.addEventListener('click', clearColumnFilterSelection);
 }
-function buildMultiFilterMarkup(type, options, title){return `<strong class="column-filter-title">${title}</strong><div class="column-filter-grid">${options.map((o)=>`<label class="column-filter-chip"><input type="checkbox" value="${escapeAttribute(o.value)}" ${state.reportColumnFilter.type===type&&state.reportColumnFilter.values.includes(o.value)?'checked':''}/><span>${escapeHtml(o.label)}</span></label>`).join('')}</div><div class="column-filter-actions"><button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button></div>`;}
+function buildMultiFilterMarkup(type, options, title){
+  return `<strong class="column-filter-title">${title}</strong><div class="column-filter-toolbar"><label class="column-filter-search-label"><input id="columnFilterSearchInput" type="search" placeholder="Kommission suchen" autocomplete="off" /></label><button id="clearColumnFilterSelectionButton" class="button button-secondary report-filter-icon-button" type="button" title="Alle abwählen" aria-label="Alle abwählen">✕</button></div><div class="column-filter-grid">${options.map((o)=>`<label class="column-filter-chip" data-filter-label="${escapeAttribute(String(o.label || '').toLowerCase())}"><input type="checkbox" value="${escapeAttribute(o.value)}" ${state.reportColumnFilter.type===type&&state.reportColumnFilter.values.includes(o.value)?'checked':''}/><span>${escapeHtml(o.label)}</span></label>`).join('')}</div><div class="column-filter-actions"><button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button></div>`;
+}
+function handleColumnFilterSearchInput(event) {
+  const query = String(event?.target?.value || '').trim().toLowerCase();
+  const chips = elements.reportsColumnFilterPopover?.querySelectorAll('.column-filter-chip') || [];
+  chips.forEach((chip) => {
+    const label = chip.dataset.filterLabel || '';
+    chip.classList.toggle('hidden', Boolean(query) && !label.includes(query));
+  });
+}
+function clearColumnFilterSelection() {
+  const checkboxes = elements.reportsColumnFilterPopover?.querySelectorAll('.column-filter-chip input[type="checkbox"]') || [];
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+}
 function applyColumnFilterFromPopover(){const t=elements.reportsColumnFilterPopover?.dataset.filterType;if(!t)return;let values=[];if(t==='expenses'||t==='attachments'){if(document.getElementById('singleFilterToggle')?.checked)values=['1'];}else{values=Array.from(elements.reportsColumnFilterPopover.querySelectorAll('input[type="checkbox"]:checked')).map((el)=>el.value);}state.reportColumnFilter={type:values.length?t:'none',values};state.reportsPage=1;elements.reportsColumnFilterModal?.classList.add('hidden');renderReportsTable();}
 function handleGlobalColumnFilterDismiss(event){if(elements.reportsColumnFilterModal?.classList.contains('hidden')) return; if (elements.reportsColumnFilterPopover.contains(event.target) || event.target.closest('.modal-card')) return; if (event.target.closest('.report-column-filter-trigger')) return; if (event.target?.matches?.('[data-close-reports-filter-modal=\"true\"]')) { elements.reportsColumnFilterModal.classList.add('hidden'); return; } if (event.target === elements.reportsColumnFilterModal) elements.reportsColumnFilterModal.classList.add('hidden');}
 
