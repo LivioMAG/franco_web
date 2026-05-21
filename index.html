@@ -146,6 +146,15 @@
                   <label id="showControlledReportsToggle" class="button button-secondary report-filter-checkbox-button report-controlled-toggle" title="Kundenrapporte anzeigen" aria-label="Kundenrapporte anzeigen">
                     <input id="showControlledReportsInput" type="checkbox" />
                   </label>
+                  <label class="report-sort-select-label" for="reportsSortSelect">
+                    <span>Sortierung</span>
+                    <select id="reportsSortSelect" class="report-sort-select">
+                      <option value="date_desc">Datum absteigend</option>
+                      <option value="date_asc">Datum aufsteigend</option>
+                      <option value="personal_asc">Personal aufsteigend</option>
+                      <option value="personal_desc">Personal absteigend</option>
+                    </select>
+                  </label>
                 </div>
               </div>
 
@@ -155,7 +164,7 @@
                     <tr>
                       <th><button id="reportsFilterEmployeeButton" class="report-column-filter-trigger" type="button">Mitarbeiter</button></th>
                       <th>Kontrolle</th>
-                      <th><button id="reportsSortDateButton" class="report-column-filter-trigger" type="button">Datum ↓</button></th>
+                      <th>Datum</th>
                       <th><button id="reportsFilterCommissionButton" class="report-column-filter-trigger" type="button">Kommission</button></th>
                       <th>Projektname</th>
                       <th>Arbeitszeit</th>

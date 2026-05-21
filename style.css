@@ -713,6 +713,25 @@ tbody tr:hover {
   color: #fff;
 }
 
+
+.report-sort-select-label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.report-sort-select {
+  min-width: 220px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.15);
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+}
+
 .employee-filter-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

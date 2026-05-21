@@ -714,7 +714,7 @@ const state = {
   dispoAllowMultiplePerDay: true,
   selectedProjectId: null,
   reportColumnFilter: { type: 'none', values: [] },
-  reportsDateSortDescending: true,
+  reportsSortMode: 'date_desc',
   showControlledReports: false,
   absenceFilterQuery: '',
   selectedAbsenceEmployeeIds: [],
@@ -844,7 +844,7 @@ function cacheElements() {
   elements.showControlledReportsToggle = document.getElementById('showControlledReportsToggle');
   elements.showControlledReportsInput = document.getElementById('showControlledReportsInput');
   elements.reportsFilterEmployeeButton = document.getElementById('reportsFilterEmployeeButton');
-  elements.reportsSortDateButton = document.getElementById('reportsSortDateButton');
+  elements.reportsSortSelect = document.getElementById('reportsSortSelect');
   elements.reportsColumnFilterModal = document.getElementById('reportsColumnFilterModal');
   elements.reportsFilterCommissionButton = document.getElementById('reportsFilterCommissionButton');
   elements.reportsFilterExpensesButton = document.getElementById('reportsFilterExpensesButton');
@@ -1060,13 +1060,7 @@ function bindEvents() {
   });
   elements.exportPdfButton.addEventListener('click', exportWeekPdf);
   elements.reportsFilterEmployeeButton?.addEventListener('click', () => openReportsColumnFilter('employee'));
-  elements.reportsSortDateButton?.addEventListener('click', () => {
-    state.reportsDateSortDescending = !state.reportsDateSortDescending;
-    if (elements.reportsSortDateButton) {
-      elements.reportsSortDateButton.textContent = state.reportsDateSortDescending ? 'Datum ↓' : 'Datum ↑';
-    }
-    renderReportsTable();
-  });
+  elements.reportsSortSelect?.addEventListener('change', handleReportsSortChange);
   elements.reportsFilterCommissionButton?.addEventListener('click', () => openReportsColumnFilter('commission'));
   elements.reportsFilterExpensesButton?.addEventListener('click', () => openReportsColumnFilter('expenses'));
   elements.reportsFilterAttachmentsButton?.addEventListener('click', () => openReportsColumnFilter('attachments'));
@@ -2085,6 +2079,7 @@ function renderReportStats() {
 
 function renderEmployeeFilters() {
   if (elements.showControlledReportsInput) elements.showControlledReportsInput.checked = state.showControlledReports;
+  if (elements.reportsSortSelect) elements.reportsSortSelect.value = state.reportsSortMode;
   if (elements.showControlledReportsToggle) elements.showControlledReportsToggle.classList.toggle('is-active', state.showControlledReports);
 }
 
@@ -2363,6 +2358,12 @@ function handleShowControlledReportsToggle() {
   renderReportsTable();
 }
 
+function handleReportsSortChange(event) {
+  state.reportsSortMode = event.target?.value || 'date_desc';
+  state.reportsPage = 1;
+  renderReportsTable();
+}
+
 
 function handleShowControlledAbsencesToggle() {
   state.showControlledAbsences = Boolean(elements.showControlledAbsencesInput?.checked);
@@ -2469,10 +2470,25 @@ function matchesReportColumnFilter(report) {
 function getSortedFilteredReports() {
   return [...getFilteredReports()].sort((a, b) => {
     const dateCompare = `${a.work_date || ''}${a.start_time || ''}`.localeCompare(`${b.work_date || ''}${b.start_time || ''}`);
-    if (dateCompare !== 0) {
-      return state.reportsDateSortDescending ? -dateCompare : dateCompare;
+    const nameCompare = (getProfileById(a.profile_id)?.full_name ?? '').localeCompare(getProfileById(b.profile_id)?.full_name ?? '');
+
+    if (state.reportsSortMode === 'date_asc') {
+      if (dateCompare !== 0) return dateCompare;
+      return nameCompare;
     }
-    return (getProfileById(a.profile_id)?.full_name ?? '').localeCompare(getProfileById(b.profile_id)?.full_name ?? '');
+
+    if (state.reportsSortMode === 'personal_asc') {
+      if (nameCompare !== 0) return nameCompare;
+      return dateCompare;
+    }
+
+    if (state.reportsSortMode === 'personal_desc') {
+      if (nameCompare !== 0) return -nameCompare;
+      return dateCompare;
+    }
+
+    if (dateCompare !== 0) return -dateCompare;
+    return nameCompare;
   });
 }
 
