@@ -827,6 +827,7 @@ function cacheElements() {
   elements.previousWeekButton = document.getElementById('previousWeekButton');
   elements.nextWeekButton = document.getElementById('nextWeekButton');
   elements.exportPdfButton = document.getElementById('exportPdfButton');
+  elements.exportPdfWithVisumButton = document.getElementById('exportPdfWithVisumButton');
   elements.reportStatusButton = document.getElementById('reportStatusButton');
   elements.reportStatusIcon = document.getElementById('reportStatusIcon');
   elements.reportStatusText = document.getElementById('reportStatusText');
@@ -1059,6 +1060,7 @@ function bindEvents() {
     await loadData();
   });
   elements.exportPdfButton.addEventListener('click', exportWeekPdf);
+  elements.exportPdfWithVisumButton?.addEventListener('click', exportWeekPdfWithVisum);
   elements.reportsFilterEmployeeButton?.addEventListener('click', () => openReportsColumnFilter('employee'));
   elements.reportsSortSelect?.addEventListener('change', handleReportsSortChange);
   elements.reportsFilterCommissionButton?.addEventListener('click', () => openReportsColumnFilter('commission'));
@@ -6401,6 +6403,44 @@ function setCurrentPage(page) {
 }
 
 async function exportWeekPdf() {
+  await exportWeekPdfInternal({ includeVisumStamp: false });
+}
+
+async function exportWeekPdfWithVisum() {
+  await exportWeekPdfInternal({ includeVisumStamp: true });
+}
+
+function getVisumTimestampLabel(date = new Date()) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${day}.${month}.${year} ${hour}:${minute}`;
+}
+
+function drawVisumStamp(pdf, { approverName, approvedAt }) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const boxWidth = 82;
+  const boxHeight = 16;
+  const marginRight = 8;
+  const marginBottom = 8;
+  const x = pageWidth - marginRight - boxWidth;
+  const y = pageHeight - marginBottom - boxHeight;
+
+  pdf.setFillColor(255, 255, 255);
+  pdf.setDrawColor(180, 180, 180);
+  pdf.setLineWidth(0.3);
+  pdf.roundedRect(x, y, boxWidth, boxHeight, 1.5, 1.5, 'FD');
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(8);
+  pdf.text(`Geprüft durch: ${approverName}`, x + 3, y + 6.2);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(`Datum: ${approvedAt}`, x + 3, y + 12);
+}
+
+async function exportWeekPdfInternal({ includeVisumStamp = false } = {}) {
   await withLongTask('PDF-Export wird vorbereitet …', async () => {
     const filteredReports = getSortedFilteredReports();
     if (!filteredReports.length) {
@@ -6412,6 +6452,8 @@ async function exportWeekPdf() {
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
     const grouped = groupReportsByProfile(filteredReports);
     const weekRange = getWeekRange(state.selectedWeek);
+    const approverName = String(state.currentProfile?.full_name || state.currentProfile?.email || 'Unbekannt').trim();
+    const approvedAt = getVisumTimestampLabel();
     let firstSection = true;
 
     for (const profile of getReportableProfiles().filter((item) => grouped.has(item.id))) {
@@ -6426,6 +6468,9 @@ async function exportWeekPdf() {
         calendarWeek: getWeekLabel(state.selectedWeek),
         layout: reportLayout,
       });
+      if (includeVisumStamp) {
+        drawVisumStamp(pdf, { approverName, approvedAt });
+      }
 
       const imageAttachments = reports
         .flatMap((report) => {
