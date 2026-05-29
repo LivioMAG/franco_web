@@ -1,5 +1,5 @@
--- Support per-weekday absence report hours from holiday_requests.special_request_hours.
--- Empty JSON keeps the previous automatic report behavior.
+-- Fix absence approval on PostgreSQL versions that do not provide jsonb_object_length(jsonb).
+-- Recreate the approval RPC with a portable non-empty JSONB object check.
 
 alter table public.holiday_requests
 add column if not exists special_request_hours jsonb not null default '{}'::jsonb;

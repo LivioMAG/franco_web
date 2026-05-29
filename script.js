@@ -398,7 +398,7 @@ begin
     cross join lateral (
       select case
         when jsonb_typeof(coalesce(updated_request.special_request_hours, '{}'::jsonb)) = 'object'
-          then jsonb_object_length(coalesce(updated_request.special_request_hours, '{}'::jsonb)) > 0
+          then coalesce(updated_request.special_request_hours, '{}'::jsonb) <> '{}'::jsonb
         else false
       end as has_special_hours
     ) request_config
