@@ -74,6 +74,7 @@ create table if not exists public.holiday_requests (
   controll_pl text,
   controll_gl text,
   approval_status smallint not null default 1 check (approval_status in (0, 1, 2)),
+  special_request_hours jsonb not null default '{}'::jsonb,
   attachments jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
@@ -199,6 +200,9 @@ add column if not exists controll_gl text;
 
 alter table public.holiday_requests
 add column if not exists approval_status smallint not null default 1;
+
+alter table public.holiday_requests
+add column if not exists special_request_hours jsonb not null default '{}'::jsonb;
 
 do $$
 begin
@@ -338,8 +342,16 @@ begin
         '16:30'::time,
         60,
         30,
-        greatest(480, round((coalesce(profile.weekly_hours, 40) / 5.0) * 60.0)::integer),
-        greatest(480, round((coalesce(profile.weekly_hours, 40) / 5.0) * 60.0)::integer),
+        case
+          when request_config.has_special_hours
+            then round(greatest(0, request_hours.special_hours) * 60.0)::integer
+          else greatest(480, round((coalesce(profile.weekly_hours, 40) / 5.0) * 60.0)::integer)
+        end,
+        case
+          when request_config.has_special_hours
+            then round(greatest(0, request_hours.special_hours) * 60.0)::integer
+          else greatest(480, round((coalesce(profile.weekly_hours, 40) / 5.0) * 60.0)::integer)
+        end,
         0,
         0,
         '',
@@ -347,9 +359,39 @@ begin
         '',
         '[]'::jsonb
       from generate_series(updated_request.start_date, updated_request.end_date, interval '1 day') as work_day
+      cross join lateral (
+        select case
+          when jsonb_typeof(coalesce(updated_request.special_request_hours, '{}'::jsonb)) = 'object'
+            then jsonb_object_length(coalesce(updated_request.special_request_hours, '{}'::jsonb)) > 0
+          else false
+        end as has_special_hours
+      ) request_config
+      cross join lateral (
+        select case extract(isodow from work_day)::integer
+          when 1 then 'Montag'
+          when 2 then 'Dienstag'
+          when 3 then 'Mittwoch'
+          when 4 then 'Donnerstag'
+          when 5 then 'Freitag'
+          when 6 then 'Samstag'
+          when 7 then 'Sonntag'
+        end as day_name
+      ) day_config
+      cross join lateral (
+        select case
+          when request_config.has_special_hours
+            and coalesce(updated_request.special_request_hours ->> day_config.day_name, '') ~ '^\s*[0-9]+(\.[0-9]+)?\s*$'
+            then (updated_request.special_request_hours ->> day_config.day_name)::numeric
+          else 0
+        end as special_hours
+      ) request_hours
       left join public.app_profiles profile
         on profile.id = updated_request.profile_id
       where extract(isodow from work_day) between 1 and 5
+        and (
+          not request_config.has_special_hours
+          or request_hours.special_hours > 0
+        )
         and not exists (
           select 1
           from public.weekly_reports existing
