@@ -814,6 +814,39 @@ tbody tr:hover {
   background: rgba(215, 0, 21, 0.12);
 }
 
+.control-checkbox-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+
+.control-checkbox-button input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--success);
+  cursor: pointer;
+}
+
+.control-checkbox-button.is-controlled {
+  cursor: default;
+}
+
+.control-checkbox-button.is-controlled input[type='checkbox'] {
+  opacity: 1;
+}
+
+.control-checkbox-button input[type='checkbox']:disabled {
+  cursor: default;
+}
+
 .status-stack {
   display: grid;
   gap: 6px;
