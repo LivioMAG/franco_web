@@ -2646,7 +2646,7 @@ function handleReportsTableClick(event) {
   }
 
   const clickedRow = event.target.closest('tr[data-action="open-report-edit"]');
-  if (clickedRow && !event.target.closest('button')) {
+  if (clickedRow && !event.target.closest('button, input, label, a')) {
     const rowReportId = clickedRow.dataset.reportId;
     if (rowReportId) {
       openReportEditModal(rowReportId);
@@ -3826,23 +3826,35 @@ async function handleConfirmReport(reportId) {
     return;
   }
 
+  const report = state.weeklyReports.find((item) => String(item.id) === String(reportId));
+  if (!report || String(report.controll || '').trim()) {
+    return;
+  }
+
+  const controllName = getControllDisplayName();
+  if (!controllName) {
+    alert('Der Name für die Kontrolle konnte nicht ermittelt werden.');
+    return;
+  }
+
+  const previousControll = report.controll;
+  report.controll = controllName;
   state.isSavingReport = true;
+  renderReportsTable();
+
   try {
-    await withLongTask('Rapport wird bestätigt …', async () => {
-      await confirmReportUsingSingleConfirmationLogic(reportId);
-      await loadData();
-    });
+    await confirmReportUsingSingleConfirmationLogic(reportId, controllName);
   } catch (error) {
+    report.controll = previousControll;
     console.error(error);
     alert(`Kontrolle konnte nicht gespeichert werden: ${error.message}`);
   } finally {
     state.isSavingReport = false;
-    render();
+    renderReportsTable();
   }
 }
 
-async function confirmReportUsingSingleConfirmationLogic(reportId) {
-  const controllName = getControllDisplayName();
+async function confirmReportUsingSingleConfirmationLogic(reportId, controllName = getControllDisplayName()) {
   if (!controllName) {
     throw new Error('Der Name für die Kontrolle konnte nicht ermittelt werden.');
   }
@@ -4687,11 +4699,15 @@ async function rejectHolidayRequestWithoutRpc(request) {
 
 function renderControllCell(report) {
   const controllValue = String(report.controll || '').trim();
-  if (controllValue) {
-    return `<div class="status-stack"><span class="pill success">Kontrolliert</span><strong>${escapeHtml(controllValue)}</strong></div>`;
-  }
+  const isControlled = Boolean(controllValue);
+  const titleText = isControlled ? `Kontrolliert von ${controllValue}` : 'Rapport kontrollieren';
+  const ariaLabel = isControlled ? titleText : 'Rapport kontrollieren';
 
-  return `<button class="button button-small button-success" type="button" data-action="confirm-report" data-report-id="${escapeAttribute(report.id)}" ${state.isSavingReport ? 'disabled' : ''}>Bestätigen</button>`;
+  return `
+    <label class="control-checkbox-button ${isControlled ? 'is-controlled' : ''}" data-action="confirm-report" data-report-id="${escapeAttribute(report.id)}" title="${escapeAttribute(titleText)}">
+      <input type="checkbox" ${isControlled ? 'checked' : ''} ${state.isSavingReport || isControlled ? 'disabled' : ''} aria-label="${escapeAttribute(ariaLabel)}" />
+    </label>
+  `;
 }
 
 function renderHolidayApprovalCell(request, fieldName, roleLabel) {
