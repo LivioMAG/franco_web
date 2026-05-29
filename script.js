@@ -4628,12 +4628,12 @@ function extractFirstName(value) {
 }
 
 function getControllDisplayName() {
-  const fullName = extractFirstName(state.currentProfile?.full_name);
+  const fullName = String(state.currentProfile?.full_name || '').trim();
   if (fullName) {
     return fullName;
   }
 
-  const userMetadataName = extractFirstName(state.user?.user_metadata?.full_name || state.user?.user_metadata?.name);
+  const userMetadataName = String(state.user?.user_metadata?.full_name || state.user?.user_metadata?.name || '').trim();
   if (userMetadataName) {
     return userMetadataName;
   }
