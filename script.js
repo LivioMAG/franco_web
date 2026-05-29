@@ -120,6 +120,9 @@ add column if not exists controll_gl text;
 alter table public.holiday_requests
 add column if not exists approval_status smallint not null default 1;
 
+alter table public.holiday_requests
+add column if not exists special_request_hours jsonb not null default '{}'::jsonb;
+
 alter table public.platform_holidays
 add column if not exists is_paid boolean not null default true;
 
@@ -375,8 +378,16 @@ begin
       '16:30'::time,
       60,
       30,
-      greatest(480, round((coalesce(profile.weekly_hours, 40) / 5.0) * 60.0)::integer),
-      greatest(480, round((coalesce(profile.weekly_hours, 40) / 5.0) * 60.0)::integer),
+      case
+        when request_config.has_special_hours
+          then round(greatest(0, request_hours.special_hours) * 60.0)::integer
+        else greatest(480, round((coalesce(profile.weekly_hours, 40) / 5.0) * 60.0)::integer)
+      end,
+      case
+        when request_config.has_special_hours
+          then round(greatest(0, request_hours.special_hours) * 60.0)::integer
+        else greatest(480, round((coalesce(profile.weekly_hours, 40) / 5.0) * 60.0)::integer)
+      end,
       0,
       0,
       '',
@@ -384,9 +395,39 @@ begin
       '',
       '[]'::jsonb
     from generate_series(updated_request.start_date, updated_request.end_date, interval '1 day') as work_day
+    cross join lateral (
+      select case
+        when jsonb_typeof(coalesce(updated_request.special_request_hours, '{}'::jsonb)) = 'object'
+          then jsonb_object_length(coalesce(updated_request.special_request_hours, '{}'::jsonb)) > 0
+        else false
+      end as has_special_hours
+    ) request_config
+    cross join lateral (
+      select case extract(isodow from work_day)::integer
+        when 1 then 'Montag'
+        when 2 then 'Dienstag'
+        when 3 then 'Mittwoch'
+        when 4 then 'Donnerstag'
+        when 5 then 'Freitag'
+        when 6 then 'Samstag'
+        when 7 then 'Sonntag'
+      end as day_name
+    ) day_config
+    cross join lateral (
+      select case
+        when request_config.has_special_hours
+          and coalesce(updated_request.special_request_hours ->> day_config.day_name, '') ~ '^\\s*[0-9]+(\\.[0-9]+)?\\s*$'
+          then (updated_request.special_request_hours ->> day_config.day_name)::numeric
+        else 0
+      end as special_hours
+    ) request_hours
     left join public.app_profiles profile
       on profile.id = updated_request.profile_id
     where extract(isodow from work_day) between 1 and 5
+      and (
+        not request_config.has_special_hours
+        or request_hours.special_hours > 0
+      )
       and not exists (
         select 1
         from public.weekly_reports existing
@@ -7287,7 +7328,10 @@ async function createAutoReportsForApprovedHolidayRequest(request) {
   while (cursor <= endDate) {
     const weekday = cursor.getUTCDay();
     if (weekday >= 1 && weekday <= 5) {
-      days.push(cursor.toISOString().slice(0, 10));
+      const workDate = cursor.toISOString().slice(0, 10);
+      if (getAutoAbsenceMinutesForDate(request, workDate) !== null) {
+        days.push(workDate);
+      }
     }
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
@@ -7354,7 +7398,7 @@ async function createAutoReportsForApprovedHolidayRequest(request) {
 
 function buildAutoAbsenceWeeklyReport(request, workDate, requestTypeLabel, requestTypeCode) {
   const isoWeek = getIsoYearAndWeekFromDateString(workDate);
-  const dailyMinutes = getAutoAbsenceDailyMinutesForProfile(request.profile_id);
+  const dailyMinutes = getAutoAbsenceMinutesForDate(request, workDate) ?? getAutoAbsenceDailyMinutesForProfile(request.profile_id);
   return {
     id: crypto.randomUUID(),
     profile_id: request.profile_id,
@@ -7384,6 +7428,36 @@ function getAutoAbsenceDailyMinutesForProfile(profileId) {
   const weeklyHours = Number(profile?.weekly_hours);
   const normalizedWeeklyHours = Number.isFinite(weeklyHours) && weeklyHours > 0 ? weeklyHours : 40;
   return Math.max(8 * 60, Math.round((normalizedWeeklyHours / 5) * 60));
+}
+
+function getSpecialRequestHoursMap(request) {
+  const value = request?.special_request_hours;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return Object.keys(value).length ? value : null;
+}
+
+function getGermanWeekdayNameFromDateString(dateString) {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  const weekdayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  return weekdayNames[date.getUTCDay()] || '';
+}
+
+function getAutoAbsenceMinutesForDate(request, workDate) {
+  const specialRequestHours = getSpecialRequestHoursMap(request);
+  if (!specialRequestHours) {
+    return getAutoAbsenceDailyMinutesForProfile(request?.profile_id);
+  }
+
+  const weekdayName = getGermanWeekdayNameFromDateString(workDate);
+  const hours = Number(specialRequestHours[weekdayName]);
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return null;
+  }
+
+  return Math.round(hours * 60);
 }
 
 function getHolidayRequestDurationLabel(request) {
