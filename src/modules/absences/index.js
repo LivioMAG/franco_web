@@ -268,12 +268,6 @@ function renderAbsenceInfoModalState() {
   elements.absenceInfoModal.classList.toggle('hidden', !state.isAbsenceInfoModalOpen);
 
   const summary = state.absenceInfoSummary;
-  if (elements.absenceInfoModalSubtitle) {
-    elements.absenceInfoModalSubtitle.textContent = summary
-      ? `${summary.employeeName} · ${summary.typeLabel} · ${summary.year}`
-      : 'Jahresübersicht nach Mitarbeiter und Absenztyp.';
-  }
-
   if (!state.isAbsenceInfoModalOpen) {
     return;
   }
@@ -323,7 +317,7 @@ function renderAbsenceInfoModalState() {
 
         <div class="absence-invoice-line deduction">
           <div>
-            <span>Zukünftig rapportierte Stunden</span>
+            <span>Zukünftige Stunden</span>
             <small>${escapeHtml(futureRange)}</small>
           </div>
           <strong>− ${escapeHtml(formatMinutes(summary.futureMinutes))}</strong>
@@ -332,13 +326,11 @@ function renderAbsenceInfoModalState() {
         <div class="absence-invoice-line result ${escapeAttribute(balanceClass)}">
           <div>
             <span>Ergebnis</span>
-            <small>Kontingent − rapportierte Stunden − zukünftig rapportierte Stunden</small>
           </div>
           <strong>${escapeHtml(balancePrefix)} ${escapeHtml(formatMinutes(Math.abs(summary.remainingMinutes)))}</strong>
         </div>
       </div>
     </section>
-    <p class="subtle-text">Ausgewertet werden ${escapeHtml(String(summary.reportCount))} Wochenrapport(e) des Mitarbeiters mit dem Absenztyp „${escapeHtml(summary.typeLabel)}“ im aktuellen Kalenderjahr.</p>
   `;
 }
 

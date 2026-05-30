@@ -80,7 +80,6 @@ function cacheElements() {
   elements.confirmationsModal = document.getElementById('confirmationsModal');
   elements.rejectedAbsencesModal = document.getElementById('rejectedAbsencesModal');
   elements.absenceInfoModal = document.getElementById('absenceInfoModal');
-  elements.absenceInfoModalSubtitle = document.getElementById('absenceInfoModalSubtitle');
   elements.absenceInfoModalContent = document.getElementById('absenceInfoModalContent');
   elements.closeConfirmationsModalButton = document.getElementById('closeConfirmationsModalButton');
   elements.closeRejectedAbsencesModalButton = document.getElementById('closeRejectedAbsencesModalButton');
