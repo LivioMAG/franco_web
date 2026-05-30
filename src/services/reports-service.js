@@ -130,7 +130,7 @@ function resetAppState() {
   state.showPastAbsences = false;
   state.reportsPage = 1;
   state.selectedProjectId = null;
-  state.dispoAllowMultiplePerDay = true;
+  state.dispoExpandedCells = [];
   state.isAbsenceInfoModalOpen = false;
   state.absenceInfoRequestId = null;
   state.isAbsenceInfoLoading = false;

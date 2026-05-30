@@ -91,15 +91,8 @@
   background: rgba(17, 17, 17, 0.95);
 }
 
-.dispo-item-card-dark .dispo-item-text,
-.dispo-item-card-dark .dispo-item-time {
+.dispo-item-card-dark .dispo-item-text {
   color: #fff;
-}
-
-.dispo-item-time {
-  display: inline;
-  color: rgba(17, 17, 17, 0.7);
-  font-size: 11px;
 }
 
 .dispo-delete-button {
@@ -199,18 +192,23 @@
   text-align: center;
 }
 
-.dispo-gap-results {
-  margin-top: 12px;
-  text-align: left;
+.dispo-cell-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
-.dispo-gap-results h4 {
-  margin: 0 0 8px;
-}
-
-.dispo-gap-results ul {
-  margin: 0;
-  padding-left: 18px;
-  display: grid;
+.dispo-expand-button {
+  min-height: 30px;
+  min-width: 34px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: rgba(17, 17, 17, 0.78);
   gap: 4px;
+}
+
+.dispo-expand-count {
+  font-size: 11px;
+  font-weight: 700;
 }

@@ -325,16 +325,9 @@
                 <button id="dispoNextWeekButton" class="button button-secondary button-icon" type="button" aria-label="Nächste Woche">→</button>
               </div>
               <div class="toolbar-group toolbar-actions">
-                <label class="checkbox-inline with-icon">
-                  <span aria-hidden="true">🧩</span>
-                  <input id="dispoMultiEntryInput" type="checkbox" />
-                  <span>Mehrere Einträge pro Tag</span>
-                </label>
-                <button id="dispoGapSearchButton" class="button button-secondary" type="button">Freie Lücken suchen</button>
                 <button id="dispoExportPdfButton" class="button button-secondary" type="button">Dispo als PDF</button>
               </div>
             </div>
-            <div id="dispoGapResults" class="panel hidden dispo-gap-results" aria-live="polite"></div>
             <div class="panel table-panel dispo-matrix-panel">
               <div class="table-wrapper">
                 <table class="dispo-table">
@@ -625,52 +618,11 @@
                 <input id="dispoAssignManualProjectNameInput" type="text" placeholder="z. B. Umbau Musterstrasse" />
               </label>
             </div>
-            <div class="report-form-grid">
-              <label>
-                <span>Beginn</span>
-                <input id="dispoAssignStartTime" type="time" value="07:00" />
-              </label>
-              <label>
-                <span>Ende</span>
-                <input id="dispoAssignEndTime" type="time" value="16:30" />
-              </label>
-            </div>
             <div class="modal-actions">
               <button id="cancelDispoAssignButton" class="button button-secondary" type="button">Abbrechen</button>
               <button class="button button-primary" type="submit">Zuweisen</button>
             </div>
           </form>
-        </div>
-      </div>
-
-      <div id="dispoGapSearchModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="dispoGapSearchTitle">
-        <div class="modal-backdrop" data-close-dispo-gap-search-modal="true"></div>
-        <div class="modal-card panel modal-card-compact">
-          <div class="modal-header">
-            <h3 id="dispoGapSearchTitle">Freie Lücken suchen</h3>
-            <button id="closeDispoGapSearchModalButton" class="button button-secondary button-small" type="button">Schliessen</button>
-          </div>
-          <form id="dispoGapSearchForm">
-            <label>
-              <span>Kalenderwoche von</span>
-              <input id="dispoGapWeekFromInput" type="week" required />
-            </label>
-            <label>
-              <span>Kalenderwoche bis (optional)</span>
-              <input id="dispoGapWeekToInput" type="week" />
-            </label>
-            <label>
-              <span>Mindestlücke (Stunden)</span>
-              <input id="dispoGapMinimumHoursInput" type="number" min="0.5" step="0.5" value="4" required />
-            </label>
-            <p id="dispoGapServiceProfiles" class="subtle-text"></p>
-            <p class="subtle-text">Es werden nur aktive Mitarbeitende mit Rolle <strong>Service</strong> gesucht (max. 3 Kalenderwochen).</p>
-            <div class="modal-actions">
-              <button id="cancelDispoGapSearchButton" class="button button-secondary" type="button">Abbrechen</button>
-              <button class="button button-primary" type="submit">Lücken suchen</button>
-            </div>
-          </form>
-          <div id="dispoGapModalResults" class="panel dispo-gap-results hidden" aria-live="polite"></div>
         </div>
       </div>
 
