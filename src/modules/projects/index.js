@@ -11,12 +11,13 @@ function renderProjectsTable() {
       <td>${escapeHtml(project.name || '')}</td>
       <td>
         <div class="table-row-actions">
-          <button class="button button-small button-secondary" type="button" data-action="edit-project" data-project-id="${escapeAttribute(project.id)}">Bearbeiten</button>
-          <button class="button button-small button-danger" type="button" data-action="delete-project" data-project-id="${escapeAttribute(project.id)}">Löschen</button>
+          <button class="button button-small button-secondary button-icon-only" type="button" data-action="edit-project" data-project-id="${escapeAttribute(project.id)}" title="Projekt bearbeiten" aria-label="Projekt bearbeiten">${renderIconButtonContent('pencil', 'Projekt bearbeiten')}</button>
+          <button class="button button-small button-danger button-icon-only" type="button" data-action="delete-project" data-project-id="${escapeAttribute(project.id)}" title="Projekt löschen" aria-label="Projekt löschen">${renderIconButtonContent('trash-2', 'Projekt löschen')}</button>
         </div>
       </td>
     </tr>`;
   }).join('');
+  renderLucideIcons();
 }
 
 function handleProjectSearchInput(event) {

@@ -946,8 +946,8 @@ async function handleSchoolVacationImportFormSubmit(event) {
 function renderHistoryActionsCell(entry) {
   return `
     <div class="table-row-actions">
-      <button class="button button-small button-secondary" type="button" data-action="download-history-confirmation" data-history-entry-id="${escapeAttribute(entry.id)}">PDF export</button>
-      <button class="button button-small button-danger" type="button" data-action="delete-history-entry" data-history-entry-id="${escapeAttribute(entry.id)}" ${state.isSavingConfirmation ? 'disabled' : ''}>Löschen</button>
+      <button class="button button-small button-secondary button-icon-only" type="button" data-action="download-history-confirmation" data-history-entry-id="${escapeAttribute(entry.id)}" title="PDF exportieren" aria-label="PDF exportieren">${renderIconButtonContent('file-down', 'PDF exportieren')}</button>
+      <button class="button button-small button-danger button-icon-only" type="button" data-action="delete-history-entry" data-history-entry-id="${escapeAttribute(entry.id)}" title="Eintrag löschen" aria-label="Eintrag löschen" ${state.isSavingConfirmation ? 'disabled' : ''}>${renderIconButtonContent('trash-2', 'Eintrag löschen')}</button>
     </div>
   `;
 }
@@ -987,7 +987,7 @@ function renderSettingsUsersTable() {
       </td>
       <td>
         <div class="stacked-cell">
-          <button class="button button-small button-secondary" type="button" data-action="edit-block-days" data-block-days-input="${escapeAttribute(profile.id)}" data-profile-id="${escapeAttribute(profile.id)}" ${state.isSavingSettings ? 'disabled' : ''}>Blocktage</button>
+          <button class="button button-small button-secondary button-icon-only" type="button" data-action="edit-block-days" data-block-days-input="${escapeAttribute(profile.id)}" data-profile-id="${escapeAttribute(profile.id)}" title="Blocktage bearbeiten" aria-label="Blocktage bearbeiten" ${state.isSavingSettings ? 'disabled' : ''}>${renderIconButtonContent('calendar-off', 'Blocktage bearbeiten')}</button>
           <small class="subtle-text">${escapeHtml(getBlockScheduleSummary(profile))}</small>
         </div>
       </td>
@@ -1024,21 +1024,25 @@ function renderSettingsUsersTable() {
       <td><span class="pill ${isActive ? 'success' : 'warning'}">${isActive ? 'Aktiv' : 'Deaktiviert'}</span></td>
       <td>
         <div class="table-row-actions">
-          ${isActive ? `<button class="button button-small button-primary" type="button" data-action="save-user-settings" data-profile-id="${escapeAttribute(profile.id)}" ${state.isSavingSettings ? 'disabled' : ''}>Speichern</button>` : `<button class="button button-small button-danger" type="button" data-action="purge-user-account" data-profile-id="${escapeAttribute(profile.id)}" ${state.isSavingSettings || isOwnProfile ? 'disabled' : ''}>Restlos löschen</button>`}
-          <button class="button button-small ${isActive ? 'button-danger' : 'button-secondary'}" type="button" data-action="toggle-user-active" data-profile-id="${escapeAttribute(profile.id)}" ${state.isSavingSettings || isOwnProfile ? 'disabled' : ''}>
-            ${isActive ? 'Deaktivieren' : 'Aktivieren'}
+          ${isActive ? `<button class="button button-small button-primary button-icon-only" type="button" data-action="save-user-settings" data-profile-id="${escapeAttribute(profile.id)}" title="Benutzer speichern" aria-label="Benutzer speichern" ${state.isSavingSettings ? 'disabled' : ''}>${renderIconButtonContent('save', 'Benutzer speichern')}</button>` : `<button class="button button-small button-danger button-icon-only" type="button" data-action="purge-user-account" data-profile-id="${escapeAttribute(profile.id)}" title="Benutzer restlos löschen" aria-label="Benutzer restlos löschen" ${state.isSavingSettings || isOwnProfile ? 'disabled' : ''}>${renderIconButtonContent('trash-2', 'Benutzer restlos löschen')}</button>`}
+          <button class="button button-small ${isActive ? 'button-danger' : 'button-secondary'} button-icon-only" type="button" data-action="toggle-user-active" data-profile-id="${escapeAttribute(profile.id)}" title="${isActive ? 'Benutzer deaktivieren' : 'Benutzer aktivieren'}" aria-label="${isActive ? 'Benutzer deaktivieren' : 'Benutzer aktivieren'}" ${state.isSavingSettings || isOwnProfile ? 'disabled' : ''}>
+            ${renderIconButtonContent(isActive ? 'user-x' : 'user-check', isActive ? 'Benutzer deaktivieren' : 'Benutzer aktivieren')}
           </button>
         </div>
       </td>
     </tr>`;
   }).join('');
+  renderLucideIcons();
 }
 
 function renderSettingsManagementButtons() {
   const vacationsButton = elements.openSettingsSchoolVacationsPageButton;
   if (vacationsButton) {
     const hasEntries = state.schoolVacations.length > 0;
-    vacationsButton.textContent = hasEntries ? 'Ferienzeit verwalten' : 'Fehlende Ferienzeit';
+    const label = hasEntries ? 'Ferienzeit verwalten' : 'Fehlende Ferienzeit';
+    vacationsButton.innerHTML = `${getIconMarkup('calendar-range')}<span>${escapeHtml(label)}</span>`;
+    vacationsButton.setAttribute('aria-label', label);
+    vacationsButton.setAttribute('title', label);
     vacationsButton.classList.toggle('is-complete', hasEntries);
     vacationsButton.classList.toggle('is-missing', !hasEntries);
   }
@@ -1046,10 +1050,14 @@ function renderSettingsManagementButtons() {
   const holidaysButton = elements.openSettingsHolidaysPageButton;
   if (holidaysButton) {
     const hasEntries = state.platformHolidays.length > 0;
-    holidaysButton.textContent = hasEntries ? 'Feiertage verwalten' : 'Fehlende Feiertage';
+    const label = hasEntries ? 'Feiertage verwalten' : 'Fehlende Feiertage';
+    holidaysButton.innerHTML = `${getIconMarkup('party-popper')}<span>${escapeHtml(label)}</span>`;
+    holidaysButton.setAttribute('aria-label', label);
+    holidaysButton.setAttribute('title', label);
     holidaysButton.classList.toggle('is-complete', hasEntries);
     holidaysButton.classList.toggle('is-missing', !hasEntries);
   }
+  renderLucideIcons();
 }
 
 function renderSettingsHolidaysTable() {
@@ -1077,17 +1085,18 @@ function renderSettingsHolidaysTable() {
         <td>
           <div class="table-row-actions">
             ${isEditing ? `
-              <button class="button button-small button-primary" type="button" data-action="save-edit-holiday" data-holiday-id="${escapeAttribute(entry.id)}" ${state.isSavingSettings ? 'disabled' : ''}>Speichern</button>
-              <button class="button button-small button-secondary" type="button" data-action="cancel-edit-holiday" data-holiday-id="${escapeAttribute(entry.id)}" ${state.isSavingSettings ? 'disabled' : ''}>Abbrechen</button>
+              <button class="button button-small button-primary button-icon-only" type="button" data-action="save-edit-holiday" data-holiday-id="${escapeAttribute(entry.id)}" title="Feiertag speichern" aria-label="Feiertag speichern" ${state.isSavingSettings ? 'disabled' : ''}>${renderIconButtonContent('save', 'Feiertag speichern')}</button>
+              <button class="button button-small button-secondary button-icon-only" type="button" data-action="cancel-edit-holiday" data-holiday-id="${escapeAttribute(entry.id)}" title="Bearbeitung abbrechen" aria-label="Bearbeitung abbrechen" ${state.isSavingSettings ? 'disabled' : ''}>${renderIconButtonContent('x', 'Bearbeitung abbrechen')}</button>
             ` : `
-              <button class="button button-small button-secondary" type="button" data-action="start-edit-holiday" data-holiday-id="${escapeAttribute(entry.id)}" ${state.isSavingSettings ? 'disabled' : ''}>Bearbeiten</button>
-              <button class="button button-small button-danger" type="button" data-action="delete-holiday" data-holiday-id="${escapeAttribute(entry.id)}" ${state.isSavingSettings ? 'disabled' : ''}>Entfernen</button>
+              <button class="button button-small button-secondary button-icon-only" type="button" data-action="start-edit-holiday" data-holiday-id="${escapeAttribute(entry.id)}" title="Feiertag bearbeiten" aria-label="Feiertag bearbeiten" ${state.isSavingSettings ? 'disabled' : ''}>${renderIconButtonContent('pencil', 'Feiertag bearbeiten')}</button>
+              <button class="button button-small button-danger button-icon-only" type="button" data-action="delete-holiday" data-holiday-id="${escapeAttribute(entry.id)}" title="Feiertag entfernen" aria-label="Feiertag entfernen" ${state.isSavingSettings ? 'disabled' : ''}>${renderIconButtonContent('trash-2', 'Feiertag entfernen')}</button>
             `}
           </div>
         </td>
       </tr>
     `;
   }).join('');
+  renderLucideIcons();
 }
 
 function renderSettingsSchoolVacationsTable() {
@@ -1102,12 +1111,13 @@ function renderSettingsSchoolVacationsTable() {
       <td>${escapeHtml(formatDate(entry.start_date))}</td>
       <td>${escapeHtml(formatDate(entry.end_date))}</td>
       <td>
-        <button class="button button-small button-danger" type="button" data-action="delete-school-vacation" data-school-vacation-id="${escapeAttribute(entry.id)}" ${state.isSavingSettings ? 'disabled' : ''}>
-          Entfernen
+        <button class="button button-small button-danger button-icon-only" type="button" data-action="delete-school-vacation" data-school-vacation-id="${escapeAttribute(entry.id)}" title="Ferienzeit entfernen" aria-label="Ferienzeit entfernen" ${state.isSavingSettings ? 'disabled' : ''}>
+          ${renderIconButtonContent('trash-2', 'Ferienzeit entfernen')}
         </button>
       </td>
     </tr>
   `).join('');
+  renderLucideIcons();
 }
 
 async function handleDeleteHistoryEntry(historyEntryId) {

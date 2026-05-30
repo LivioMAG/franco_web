@@ -21,6 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
     <script defer src="./src/constants.js"></script>
     <script defer src="./src/state.js"></script>
     <script defer src="./src/services/supabase-client.js"></script>
@@ -82,29 +83,29 @@
         <aside class="sidebar panel">
           <nav class="nav-tabs">
             <button class="nav-tab active" data-page="reports" type="button" title="Wochenrapporte" aria-label="Wochenrapporte">
-              <span class="nav-tab-icon" aria-hidden="true">📅</span>
+              <i class="nav-tab-icon" data-lucide="clipboard-list" aria-hidden="true"></i>
               <span class="visually-hidden">Wochenrapporte</span>
             </button>
             <button class="nav-tab" data-page="absences" type="button" title="Ferien &amp; Absenzen" aria-label="Ferien und Absenzen">
-              <span class="nav-tab-icon" aria-hidden="true">🏖️</span>
+              <i class="nav-tab-icon" data-lucide="calendar-heart" aria-hidden="true"></i>
               <span class="visually-hidden">Ferien und Absenzen</span>
             </button>
             <button class="nav-tab" data-page="projects" type="button" title="Projekte" aria-label="Projekte">
-              <span class="nav-tab-icon" aria-hidden="true">🏗️</span>
+              <i class="nav-tab-icon" data-lucide="hard-hat" aria-hidden="true"></i>
               <span class="visually-hidden">Projekte</span>
             </button>
             <button class="nav-tab" data-page="dispo" type="button" title="Dispo" aria-label="Dispo">
-              <span class="nav-tab-icon" aria-hidden="true">🗓️</span>
+              <i class="nav-tab-icon" data-lucide="calendar-days" aria-hidden="true"></i>
               <span class="visually-hidden">Dispo</span>
             </button>
             <button class="nav-tab" data-page="settings" type="button" title="Einstellungen" aria-label="Einstellungen">
-              <span class="nav-tab-icon" aria-hidden="true">⚙️</span>
+              <i class="nav-tab-icon" data-lucide="settings" aria-hidden="true"></i>
               <span class="visually-hidden">Einstellungen</span>
             </button>
           </nav>
 
           <div class="sidebar-footer">
-            <button id="logoutButton" class="button button-ghost sidebar-logout" type="button" title="Ausloggen" aria-label="Ausloggen">↩</button>
+            <button id="logoutButton" class="button button-ghost sidebar-logout" type="button" title="Ausloggen" aria-label="Ausloggen"><i data-lucide="log-out" aria-hidden="true"></i></button>
           </div>
         </aside>
 
@@ -112,14 +113,14 @@
           <section id="reportsPage" class="page active">
             <div class="toolbar panel">
               <div class="week-toolbar" aria-label="Kalenderwoche Navigation">
-                <button id="previousWeekButton" class="button button-secondary button-icon" type="button" aria-label="Vorherige Woche">←</button>
+                <button id="previousWeekButton" class="button button-secondary button-icon" type="button" title="Vorherige Woche" aria-label="Vorherige Woche"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
                 <div class="week-summary">
                   <input id="weekPicker" type="week" class="visually-hidden" tabindex="-1" aria-hidden="true" />
                   <span class="subtle-label">Kalenderwoche</span>
                   <strong id="weekLabel">KW 00</strong>
                   <span id="weekDateRange" class="subtle-text">00.00.0000 – 00.00.0000</span>
                 </div>
-                <button id="nextWeekButton" class="button button-secondary button-icon" type="button" aria-label="Nächste Woche">→</button>
+                <button id="nextWeekButton" class="button button-secondary button-icon" type="button" title="Nächste Woche" aria-label="Nächste Woche"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
               </div>
               <div class="toolbar-group toolbar-actions">
                 <button
@@ -132,8 +133,8 @@
                   <span id="reportStatusIcon" class="report-status-icon" aria-hidden="true">0</span>
                   <span id="reportStatusText">fehlende Wochenrapporte</span>
                 </button>
-                <button id="exportPdfButton" class="button button-primary">PDF exportieren</button>
-                <button id="exportPdfWithVisumButton" class="button button-secondary" type="button">Export mit Visum</button>
+                <button id="exportPdfButton" class="button button-primary button-icon" type="button" title="PDF exportieren" aria-label="PDF exportieren"><i data-lucide="file-down" aria-hidden="true"></i></button>
+                <button id="exportPdfWithVisumButton" class="button button-secondary button-icon" type="button" title="PDF mit Visum exportieren" aria-label="PDF mit Visum exportieren"><i data-lucide="badge-check" aria-hidden="true"></i></button>
               </div>
             </div>
 
@@ -188,9 +189,9 @@
                 </table>
               </div>
               <div class="table-pagination">
-                <button id="reportsPrevPageButton" class="button button-secondary" type="button">Zurück</button>
+                <button id="reportsPrevPageButton" class="button button-secondary button-icon" type="button" title="Vorherige Seite" aria-label="Vorherige Seite"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
                 <div id="reportsPaginationSummary" class="subtle-text">Seite 1</div>
-                <button id="reportsNextPageButton" class="button button-secondary" type="button">Weiter</button>
+                <button id="reportsNextPageButton" class="button button-secondary button-icon" type="button" title="Nächste Seite" aria-label="Nächste Seite"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
               </div>
             </div>
 
@@ -228,7 +229,7 @@
                     title="Telefon-Delegation für fehlende Rapporte"
                     aria-label="Telefon-Delegation für fehlende Rapporte"
                   >
-                    📞
+                    <i data-lucide="phone-forwarded" aria-hidden="true"></i>
                   </button>
                 </div>
                 <ul id="missingList" class="status-list"></ul>
@@ -248,11 +249,12 @@
                 </div>
                 <button
                   id="togglePastAbsencesButton"
-                  class="button button-secondary"
+                  class="button button-secondary button-icon"
                   type="button"
+                  title="Vergangene Ferien- und Absenzanträge anzeigen"
                   aria-label="Vergangene Ferien- und Absenzanträge anzeigen"
                 >
-                  Vergangene Absenzen
+                  <i data-lucide="history" aria-hidden="true"></i>
                 </button>
               </div>
               <div class="table-wrapper">
@@ -293,7 +295,7 @@
                     <input id="projectSearchInput" type="search" placeholder="Nach Kommissionsnummer oder Projektname suchen" />
                   </label>
                   <div class="report-filter-actions">
-                    <button id="openProjectModalButton" class="button button-primary button-icon" type="button" title="Projekt hinzufügen" aria-label="Projekt hinzufügen">+</button>
+                    <button id="openProjectModalButton" class="button button-primary button-icon" type="button" title="Projekt hinzufügen" aria-label="Projekt hinzufügen"><i data-lucide="plus" aria-hidden="true"></i></button>
                   </div>
                 </div>
               </div>
@@ -316,16 +318,16 @@
             <div id="dispoAlert" class="alert hidden"></div>
             <div class="panel toolbar dispo-toolbar">
               <div class="week-toolbar" aria-label="Kalenderwoche Navigation">
-                <button id="dispoPreviousWeekButton" class="button button-secondary button-icon" type="button" aria-label="Vorherige Woche">←</button>
+                <button id="dispoPreviousWeekButton" class="button button-secondary button-icon" type="button" title="Vorherige Woche" aria-label="Vorherige Woche"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
                 <div class="week-summary">
                   <span class="subtle-label">Kalenderwoche</span>
                   <strong id="dispoWeekLabel">KW 00</strong>
                   <span id="dispoWeekDateRange" class="subtle-text">00.00.0000 – 00.00.0000</span>
                 </div>
-                <button id="dispoNextWeekButton" class="button button-secondary button-icon" type="button" aria-label="Nächste Woche">→</button>
+                <button id="dispoNextWeekButton" class="button button-secondary button-icon" type="button" title="Nächste Woche" aria-label="Nächste Woche"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
               </div>
               <div class="toolbar-group toolbar-actions">
-                <button id="dispoExportPdfButton" class="button button-secondary" type="button">Dispo als PDF</button>
+                <button id="dispoExportPdfButton" class="button button-secondary button-icon" type="button" title="Dispo als PDF exportieren" aria-label="Dispo als PDF exportieren"><i data-lucide="file-spreadsheet" aria-hidden="true"></i></button>
               </div>
             </div>
             <div class="panel table-panel dispo-matrix-panel">

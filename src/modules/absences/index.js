@@ -42,12 +42,14 @@ function renderAbsenceTable() {
 
   if (!rows.length) {
     elements.absencesTableBody.innerHTML = `<tr><td colspan="10">${emptyLabel}</td></tr>`;
+    renderLucideIcons();
     return;
   }
 
   elements.absencesTableBody.innerHTML = rows
     .map((request) => renderAbsenceTableRow(request))
     .join('');
+  renderLucideIcons();
 }
 
 function renderAbsencesViewState() {
@@ -58,15 +60,14 @@ function renderAbsencesViewState() {
       : 'Ferien- und Absenzanträge';
   }
   if (elements.togglePastAbsencesButton) {
-    elements.togglePastAbsencesButton.textContent = isPastView
-      ? 'Aktuelle Absenzen'
-      : 'Vergangene Absenzen';
-    elements.togglePastAbsencesButton.setAttribute(
-      'aria-label',
-      isPastView
-        ? 'Aktuelle Ferien- und Absenzanträge anzeigen'
-        : 'Vergangene Ferien- und Absenzanträge anzeigen',
-    );
+    elements.togglePastAbsencesButton.innerHTML = isPastView
+      ? renderIconButtonContent('calendar-clock', 'Aktuelle Absenzen')
+      : renderIconButtonContent('history', 'Vergangene Absenzen');
+    const title = isPastView
+      ? 'Aktuelle Ferien- und Absenzanträge anzeigen'
+      : 'Vergangene Ferien- und Absenzanträge anzeigen';
+    elements.togglePastAbsencesButton.setAttribute('aria-label', title);
+    elements.togglePastAbsencesButton.setAttribute('title', title);
   }
 }
 
@@ -112,8 +113,8 @@ function getPastHolidayRequests() {
 function renderPastHolidayActionsCell(request) {
   return `
     <div class="absence-action-buttons">
-      <button class="button button-small button-secondary" type="button" data-action="download-absence-confirmation" data-request-id="${escapeAttribute(request.id)}">Download</button>
-      <button class="button button-small button-danger" type="button" data-action="delete-absence-request" data-request-id="${escapeAttribute(request.id)}" ${state.isSavingAbsence ? 'disabled' : ''}>Entfernen</button>
+      <button class="button button-small button-secondary button-icon-only" type="button" data-action="download-absence-confirmation" data-request-id="${escapeAttribute(request.id)}" title="PDF herunterladen" aria-label="PDF herunterladen">${renderIconButtonContent('file-down', 'PDF herunterladen')}</button>
+      <button class="button button-small button-danger button-icon-only" type="button" data-action="delete-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Absenz entfernen" aria-label="Absenz entfernen" ${state.isSavingAbsence ? 'disabled' : ''}>${renderIconButtonContent('trash-2', 'Absenz entfernen')}</button>
     </div>
   `;
 }
