@@ -425,7 +425,6 @@
 }
 
 @media (max-width: 900px) {
-  .topbar,
   .toolbar,
   .report-filter-toolbar,
   .employee-directory-heading,
@@ -436,9 +435,6 @@
     align-items: stretch;
   }
 
-  .status-panel {
-    justify-items: start;
-  }
 
   .week-toolbar {
     width: 100%;
@@ -456,7 +452,6 @@
   }
 
   .login-card,
-  .topbar,
   .toolbar,
   .table-panel,
   .prose-panel,

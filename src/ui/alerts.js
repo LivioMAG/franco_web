@@ -6,9 +6,8 @@ function showInlineAlert(element, message, isError = false) {
 }
 
 function setConnectionBadge(text, warning = false) {
-  elements.connectionBadge.textContent = text;
-  elements.connectionBadge.classList.toggle('badge-soft', !warning);
-  elements.connectionBadge.classList.toggle('badge-warning', warning);
+  state.connectionStatusText = text;
+  state.isConnectionWarning = warning;
 }
 
 function showLoginMessage(message, isError = true) {

@@ -7,7 +7,7 @@ const DISPO_ITEMS_LEGACY_PREFIX = '__dispo_items__:';
 const DISPO_DEFAULT_START_TIME = '07:00';
 const DISPO_DEFAULT_END_TIME = '16:30';
 const DEFAULT_MISSING_REPORTS_CALL_WEBHOOK_URL = 'https://n8n.voltlog.cloud/webhook/voice-agent-retell';
-const APP_ROLE_OPTIONS = ['Lehrling', 'Elektroinstallateur', 'Bauleiter', 'Projektleiter', 'Service'];
+const APP_ROLE_OPTIONS = ['Lehrling', 'Elektroinstallateur', 'Bauleiter', 'Projektleiter', 'Service', 'temporär'];
 const SCHOOL_DAY_OPTIONS = [
   { value: 1, label: 'Montag' },
   { value: 2, label: 'Dienstag' },
