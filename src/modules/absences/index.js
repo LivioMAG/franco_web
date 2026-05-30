@@ -294,32 +294,51 @@ function renderAbsenceInfoModalState() {
   }
 
   const balanceClass = summary.remainingMinutes >= 0 ? 'positive' : 'negative';
-  const balanceLabel = summary.remainingMinutes >= 0 ? 'Überschuss' : 'Fehlbetrag';
+  const balancePrefix = summary.remainingMinutes >= 0 ? '+' : '−';
+  const pastRange = `01.01.${String(summary.year)} bis ${formatDate(summary.today)}`;
+  const futureRange = `${formatDate(summary.futureStartDate)} bis 31.12.${String(summary.year)}`;
 
   elements.absenceInfoModalContent.innerHTML = `
-    <div class="absence-info-grid">
-      <div class="absence-info-card">
-        <span>Kontingent</span>
-        <strong>${escapeHtml(formatMinutes(summary.allowanceMinutes))}</strong>
-        <small>Ferienguthaben von ${escapeHtml(summary.employeeName)}</small>
+    <section class="absence-invoice" aria-label="Berechnung rapportierte Absenzstunden">
+      <header class="absence-invoice-person">
+        <strong>${escapeHtml(summary.employeeName)}</strong>
+        <span>${escapeHtml(summary.typeLabel)} · ${escapeHtml(String(summary.year))}</span>
+      </header>
+
+      <div class="absence-invoice-lines">
+        <div class="absence-invoice-line allowance">
+          <div>
+            <span>Kontingent</span>
+          </div>
+          <strong>${escapeHtml(formatMinutes(summary.allowanceMinutes))}</strong>
+        </div>
+
+        <div class="absence-invoice-line deduction">
+          <div>
+            <span>Rapportierte Stunden</span>
+            <small>${escapeHtml(pastRange)}</small>
+          </div>
+          <strong>− ${escapeHtml(formatMinutes(summary.pastMinutes))}</strong>
+        </div>
+
+        <div class="absence-invoice-line deduction">
+          <div>
+            <span>Zukünftig rapportierte Stunden</span>
+            <small>${escapeHtml(futureRange)}</small>
+          </div>
+          <strong>− ${escapeHtml(formatMinutes(summary.futureMinutes))}</strong>
+        </div>
+
+        <div class="absence-invoice-line result ${escapeAttribute(balanceClass)}">
+          <div>
+            <span>Ergebnis</span>
+            <small>Kontingent − rapportierte Stunden − zukünftig rapportierte Stunden</small>
+          </div>
+          <strong>${escapeHtml(balancePrefix)} ${escapeHtml(formatMinutes(Math.abs(summary.remainingMinutes)))}</strong>
+        </div>
       </div>
-      <div class="absence-info-card">
-        <span>Bereits rapportiert</span>
-        <strong>${escapeHtml(formatMinutes(summary.pastMinutes))}</strong>
-        <small>01.01.${escapeHtml(String(summary.year))} bis ${escapeHtml(formatDate(summary.today))}</small>
-      </div>
-      <div class="absence-info-card">
-        <span>Zukünftig rapportiert</span>
-        <strong>${escapeHtml(formatMinutes(summary.futureMinutes))}</strong>
-        <small>${escapeHtml(formatDate(summary.futureStartDate))} bis 31.12.${escapeHtml(String(summary.year))}</small>
-      </div>
-      <div class="absence-info-card total ${escapeAttribute(balanceClass)}">
-        <span>${escapeHtml(balanceLabel)}</span>
-        <strong>${escapeHtml(formatSignedMinutes(summary.remainingMinutes))}</strong>
-        <small>Kontingent − bereits rapportiert − zukünftig rapportiert</small>
-      </div>
-    </div>
-    <p class="subtle-text">Ausgewertet werden ${escapeHtml(String(summary.reportCount))} Wochenrapport(e) des Mitarbeiters mit dem Absenztyp „${escapeHtml(summary.typeLabel)}“ im aktuellen Kalenderjahr. Total rapportiert: ${escapeHtml(formatMinutes(summary.totalMinutes))}. Das Kontingent entspricht dem erfassten Ferienguthaben in den Mitarbeitereinstellungen.</p>
+    </section>
+    <p class="subtle-text">Ausgewertet werden ${escapeHtml(String(summary.reportCount))} Wochenrapport(e) des Mitarbeiters mit dem Absenztyp „${escapeHtml(summary.typeLabel)}“ im aktuellen Kalenderjahr.</p>
   `;
 }
 
@@ -401,12 +420,6 @@ function buildAbsenceInfoSummary(request, reports) {
 function getVacationAllowanceMinutes(profile) {
   const allowanceHours = Number(profile?.vacation_allowance_hours || 0);
   return Number.isFinite(allowanceHours) && allowanceHours > 0 ? allowanceHours * 60 : 0;
-}
-
-function formatSignedMinutes(minutes) {
-  const numericMinutes = Number(minutes || 0);
-  const sign = numericMinutes > 0 ? '+' : numericMinutes < 0 ? '−' : '';
-  return `${sign}${formatMinutes(Math.abs(numericMinutes))}`;
 }
 
 async function fetchAbsenceInfoReports(request) {
