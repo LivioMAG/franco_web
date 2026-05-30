@@ -11,14 +11,17 @@ Statische Desktop-Webplattform mit HTML, CSS und JavaScript für:
 ## Dateien
 
 - `index.html`: Layout der Webplattform
-- `style.css`: Desktop-/Responsive-Styling
-- `script.js`: Login, Supabase-Integration, Datenabfragen, Rendering und PDF-Export
-- `supabase-schema.sql`: Tabellen, Trigger, RLS und Storage-Policies mit Vollzugriff über `is_admin`
-- `supabase-config.example.json`: Vorlage für die lokale Supabase-Konfiguration
+- `styles/`: Aufgeteiltes Desktop-/Responsive-Styling nach Basis, Layout, Komponenten und Seiten
+- `src/app.js`: App-Bootstrap, DOM-Caching und Event-Bindings
+- `src/`: Aufgeteilte App-Logik für State, Konstanten, Services, Module, UI-Helfer und Utilities
+- `config/`: Supabase-Konfiguration, App-Einstellungen und Navigation
+- `supabase/schema.sql`: Tabellen, Trigger, RLS und Storage-Policies mit Vollzugriff über `is_admin`
+- `config/supabase-config.example.json`: Vorlage für die lokale Supabase-Konfiguration
+- `docs/`: Architektur-, Deployment- und Datenmodell-Dokumentation
 
 ## Lokale Nutzung
 
-1. `supabase-config.example.json` nach `supabase-config.json` kopieren.
+1. `config/supabase-config.example.json` nach `config/supabase-config.json` kopieren.
 2. Projekt-URL und Anon-Key eintragen.
 3. Die Seite über einen statischen Webserver öffnen, z. B.:
    - `python3 -m http.server 4173`
@@ -26,8 +29,8 @@ Statische Desktop-Webplattform mit HTML, CSS und JavaScript für:
 
 ## Hinweise
 
-- Ohne `supabase-config.json` läuft die Oberfläche automatisch im Demo-Modus.
-- Für den produktiven Einsatz muss das SQL aus `supabase-schema.sql` im Supabase-Projekt
+- Ohne `config/supabase-config.json` läuft die Oberfläche automatisch im Demo-Modus.
+- Für den produktiven Einsatz muss das SQL aus `supabase/schema.sql` im Supabase-Projekt
   ausgeführt werden, damit Profile mit `is_admin = true` die Daten im Frontend vollständig
   sehen und bearbeiten können.
 - Der PDF-Export nutzt `jsPDF` und `jspdf-autotable` direkt per CDN.
@@ -38,5 +41,5 @@ Statische Desktop-Webplattform mit HTML, CSS und JavaScript für:
 
 - Fehler wie `syntax error at or near "@@"` bedeuten fast immer, dass versehentlich Git-Diff-Zeilen in den SQL-Editor kopiert wurden (z. B. `@@ -52,53 +53,63 @@`, `+`, `-` am Zeilenanfang).
 - Im Supabase-SQL-Editor darf nur gültiges SQL ausgeführt werden. Entferne alle Diff-Marker und führe danach das bereinigte Skript erneut aus.
-- Verwende am besten direkt den Inhalt aus `supabase-schema.sql` (ohne Pull-Request-/Patch-Ansicht zu kopieren).
-- Fehler wie `Could not find the table 'public.project_assignments' in the schema cache` weisen auf veraltete Abfragen hin. Die aktuelle App-Version nutzt diese Tabelle nicht mehr; führe `supabase-schema.sql` erneut aus und entferne alte Queries gegen `project_assignments`.
+- Verwende am besten direkt den Inhalt aus `supabase/schema.sql` (ohne Pull-Request-/Patch-Ansicht zu kopieren).
+- Fehler wie `Could not find the table 'public.project_assignments' in the schema cache` weisen auf veraltete Abfragen hin. Die aktuelle App-Version nutzt diese Tabelle nicht mehr; führe `supabase/schema.sql` erneut aus und entferne alte Queries gegen `project_assignments`.

@@ -1,0 +1,362 @@
+.settings-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'users';
+}
+
+.stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid-two,
+.security-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.security-grid {
+  margin-top: 24px;
+}
+
+.settings-card {
+  padding: 20px;
+}
+
+.settings-users-card {
+  grid-area: users;
+}
+
+.settings-holidays-card {
+  grid-area: holidays;
+}
+
+.settings-vacations-card {
+  grid-area: vacations;
+}
+
+.settings-manage-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.settings-manage-button {
+  border: 1px solid transparent;
+}
+
+.settings-manage-button.is-missing {
+  color: var(--accent);
+  background: rgba(215, 0, 21, 0.12);
+}
+
+.settings-manage-button.is-complete {
+  color: var(--success);
+  background: rgba(19, 115, 51, 0.12);
+}
+
+.settings-form {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 18px;
+}
+
+.settings-form-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.stat-card {
+  padding: 22px;
+}
+
+.stat-card span {
+  display: block;
+  color: var(--muted);
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 14px;
+  font-size: 32px;
+}
+
+.stat-card.warning strong {
+  color: var(--warning);
+}
+
+.report-status-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 16px;
+}
+
+.report-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  font-weight: 800;
+}
+
+.report-status-button:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.report-status-button.is-complete {
+  color: var(--success);
+  border-color: rgba(19, 115, 51, 0.16);
+  background: rgba(19, 115, 51, 0.09);
+}
+
+.report-status-button.is-missing {
+  color: var(--warning);
+  border-color: rgba(178, 106, 0, 0.16);
+  background: rgba(178, 106, 0, 0.09);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  max-height: min(68vh, 960px);
+  border-radius: 20px;
+  border: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.table-wrapper table {
+  width: max-content;
+  min-width: max(100%, 960px);
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th,
+td {
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #fbfbfc;
+}
+
+tbody tr:hover {
+  background: rgba(215, 0, 21, 0.025);
+}
+
+.section-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.section-heading.compact {
+  margin-bottom: 12px;
+}
+
+.status-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.status-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(248, 248, 250, 0.96);
+  border: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pill.success {
+  color: var(--success);
+  background: rgba(19, 115, 51, 0.1);
+}
+
+.pill.warning {
+  color: var(--warning);
+  background: rgba(178, 106, 0, 0.12);
+}
+
+.code-block {
+  overflow: auto;
+  padding: 18px;
+  border-radius: 22px;
+  background: #111111;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.code-block pre {
+  margin: 0;
+  color: #f5f5f7;
+  line-height: 1.55;
+}
+
+.mini-card {
+  padding: 18px;
+}
+
+.report-section-heading {
+  align-items: end;
+  margin-bottom: 22px;
+}
+
+.report-filter-panel {
+  margin-bottom: 16px;
+}
+
+.report-filter-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+}
+
+.report-filter-search-label {
+  flex: 1 1 auto;
+  min-width: 260px;
+}
+
+.report-filter-icon-button {
+  width: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.report-filter-checkbox-button {
+  padding: 0;
+}
+
+.report-filter-checkbox-button input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.report-controlled-toggle.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+
+.report-sort-select-label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.report-toggle-label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.report-sort-select {
+  min-width: 220px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.15);
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+}
+
+.employee-filter-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 18px;
+}
+
+.employee-directory-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.employee-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  padding: 0;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.employee-filter-option input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.report-column-filter-trigger{all:unset;cursor:pointer;color:var(--text);font-weight:600}
+.column-filter-popover{position:relative;margin:0;padding:0;display:grid;gap:8px}
+
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.table-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stacked-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.block-day-mode-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

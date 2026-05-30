@@ -1,0 +1,7 @@
+[
+  { "page": "reports", "label": "Wochenrapporte", "icon": "📅" },
+  { "page": "absences", "label": "Ferien und Absenzen", "icon": "🏖️" },
+  { "page": "projects", "label": "Projekte", "icon": "🏗️" },
+  { "page": "dispo", "label": "Dispo", "icon": "🗓️" },
+  { "page": "settings", "label": "Einstellungen", "icon": "⚙️" }
+]
