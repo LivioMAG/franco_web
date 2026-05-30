@@ -654,3 +654,8 @@
     text-align: left;
   }
 }
+
+.absence-row-rejected .absence-rejected-text {
+  color: var(--accent);
+  font-weight: 700;
+}

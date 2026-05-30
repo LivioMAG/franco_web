@@ -54,8 +54,7 @@ function cacheElements() {
   elements.logoutButton = document.getElementById('logoutButton');
   elements.reportsTableBody = document.getElementById('reportsTableBody');
   elements.absencesTableBody = document.getElementById('absencesTableBody');
-  elements.confirmationsTableBody = document.getElementById('confirmationsTableBody');
-  elements.rejectedAbsencesTableBody = document.getElementById('rejectedAbsencesTableBody');
+  elements.absencesPanelTitle = document.getElementById('absencesPanelTitle');
   elements.missingReports = document.getElementById('missingReports');
   elements.submissionList = document.getElementById('submissionList');
   elements.missingList = document.getElementById('missingList');
@@ -75,14 +74,9 @@ function cacheElements() {
   elements.selectAllAbsenceEmployeesButton = document.getElementById('selectAllAbsenceEmployeesButton');
   elements.clearAbsenceSelectionButton = document.getElementById('clearAbsenceSelectionButton');
   elements.showControlledAbsencesInput = document.getElementById('showControlledAbsencesInput');
-  elements.openConfirmationsModalButton = document.getElementById('openConfirmationsModalButton');
-  elements.openRejectedAbsencesModalButton = document.getElementById('openRejectedAbsencesModalButton');
-  elements.confirmationsModal = document.getElementById('confirmationsModal');
-  elements.rejectedAbsencesModal = document.getElementById('rejectedAbsencesModal');
+  elements.togglePastAbsencesButton = document.getElementById('togglePastAbsencesButton');
   elements.absenceInfoModal = document.getElementById('absenceInfoModal');
   elements.absenceInfoModalContent = document.getElementById('absenceInfoModalContent');
-  elements.closeConfirmationsModalButton = document.getElementById('closeConfirmationsModalButton');
-  elements.closeRejectedAbsencesModalButton = document.getElementById('closeRejectedAbsencesModalButton');
   elements.closeAbsenceInfoModalButton = document.getElementById('closeAbsenceInfoModalButton');
   elements.bulkConfirmModal = document.getElementById('bulkConfirmModal');
   elements.closeBulkConfirmModalButton = document.getElementById('closeBulkConfirmModalButton');
@@ -260,10 +254,7 @@ function bindEvents() {
   if (elements.clearAbsenceSelectionButton) elements.clearAbsenceSelectionButton.addEventListener('click', clearAbsenceSelection);
   if (elements.showControlledAbsencesInput) elements.showControlledAbsencesInput.addEventListener('change', handleShowControlledAbsencesToggle);
   if (elements.absenceFilterList) elements.absenceFilterList.addEventListener('change', handleAbsenceSelectionChange);
-  if (elements.openConfirmationsModalButton) elements.openConfirmationsModalButton.addEventListener('click', openConfirmationsModal);
-  if (elements.closeConfirmationsModalButton) elements.closeConfirmationsModalButton.addEventListener('click', closeConfirmationsModal);
-  if (elements.openRejectedAbsencesModalButton) elements.openRejectedAbsencesModalButton.addEventListener('click', openRejectedAbsencesModal);
-  if (elements.closeRejectedAbsencesModalButton) elements.closeRejectedAbsencesModalButton.addEventListener('click', closeRejectedAbsencesModal);
+  if (elements.togglePastAbsencesButton) elements.togglePastAbsencesButton.addEventListener('click', togglePastAbsencesView);
   if (elements.closeAbsenceInfoModalButton) elements.closeAbsenceInfoModalButton.addEventListener('click', closeAbsenceInfoModal);
   if (elements.closeBulkConfirmModalButton) {
     elements.closeBulkConfirmModalButton.addEventListener('click', closeBulkConfirmModal);
@@ -353,20 +344,6 @@ function bindEvents() {
       closeDispoAssignModal();
     }
   });
-  if (elements.confirmationsModal) {
-    elements.confirmationsModal.addEventListener('click', (event) => {
-      if (event.target?.dataset?.closeConfirmationsModal === 'true') {
-        closeConfirmationsModal();
-      }
-    });
-  }
-  if (elements.rejectedAbsencesModal) {
-    elements.rejectedAbsencesModal.addEventListener('click', (event) => {
-      if (event.target?.dataset?.closeRejectedAbsencesModal === 'true') {
-        closeRejectedAbsencesModal();
-      }
-    });
-  }
   if (elements.absenceInfoModal) {
     elements.absenceInfoModal.addEventListener('click', (event) => {
       if (event.target?.dataset?.closeAbsenceInfoModal === 'true') {

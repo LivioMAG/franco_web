@@ -118,8 +118,9 @@ async function exportHolidayConfirmationPdf(requestId) {
       return;
     }
 
-    if (!isHolidayRequestFullyApproved(request)) {
-      alert('Das Bestätigungsdokument kann erst heruntergeladen werden, wenn PL und GL bestätigt haben.');
+    const requestStatus = getHolidayRequestApprovalStatus(request);
+    if (requestStatus !== 0 && requestStatus !== 2) {
+      alert('Das Dokument kann erst für angenommene oder abgelehnte Absenzgesuche heruntergeladen werden.');
       return;
     }
 
@@ -238,26 +239,33 @@ function drawHolidayConfirmationPage(pdf, { request, profile }) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 18;
   const contentWidth = pageWidth - margin * 2;
-  const approvalDate = new Date().toLocaleDateString('de-CH');
+  const exportDate = new Date().toLocaleDateString('de-CH');
   const typeLabel = getAbsenceTypeLabel(request, request.request_type);
+  const status = getHolidayRequestApprovalStatus(request);
+  const statusLabel = status === 0 ? 'Abgelehnt' : 'Angenommen';
+  const personLabel = profile?.full_name || 'den Mitarbeiter';
   const detailRows = [
     ['Mitarbeiter', profile?.full_name || 'Unbekannt'],
     ['Typ', typeLabel],
+    ['Status', statusLabel],
+    ['Einreichung', formatDateOnly(request.created_at)],
     ['Von', formatDate(request.start_date)],
     ['Bis', formatDate(request.end_date)],
     ['Dauer', getHolidayRequestDurationLabel(request)],
     ['Bestätigung PL', String(request.controll_pl || '').trim() || '–'],
     ['Bestätigung GL', String(request.controll_gl || '').trim() || '–'],
-    ['Erstellt am', approvalDate],
+    ['PDF erstellt am', exportDate],
   ];
 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(22);
-  pdf.text('Bestätigung Absenz', margin, 22);
+  pdf.text('Absenzentscheid', margin, 22);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10.5);
-  const introText = `Hiermit wird bestätigt, dass die Absenz "${typeLabel}" für ${profile?.full_name || 'den Mitarbeiter'} im Zeitraum vom ${formatDate(request.start_date)} bis ${formatDate(request.end_date)} durch PL und GL freigegeben wurde.`;
+  const introText = status === 0
+    ? `Der Absenzantrag "${typeLabel}" für ${personLabel} im Zeitraum vom ${formatDate(request.start_date)} bis ${formatDate(request.end_date)} wurde abgelehnt.`
+    : `Hiermit wird bestätigt, dass die Absenz "${typeLabel}" für ${personLabel} im Zeitraum vom ${formatDate(request.start_date)} bis ${formatDate(request.end_date)} durch PL und GL freigegeben wurde.`;
   pdf.text(introText, margin, 32, { maxWidth: contentWidth, lineHeightFactor: 1.4 });
 
   pdf.autoTable({
@@ -382,7 +390,7 @@ function buildHolidayConfirmationFileName(request, profile) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return `bestaetigung-${safeName || 'mitarbeiter'}-${request.start_date}-${request.end_date}.pdf`;
+  return `absenzentscheid-${safeName || 'mitarbeiter'}-${request.start_date}-${request.end_date}.pdf`;
 }
 
 function buildWeeklyReportLayout(reports) {
