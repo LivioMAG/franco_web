@@ -1,11 +1,6 @@
 const STORAGE_BUCKET = 'weekly-attachments';
-const CRM_NOTE_STORAGE_BUCKET = 'crm-note-attachments';
 const CONFIG_PATH = './supabase-config.json';
 const HOLIDAY_TABLE = 'platform_holidays';
-const NOTES_TABLE = 'notes';
-const CRM_NOTE_TYPE = 'crm';
-const CRM_NOTE_CATEGORY_DEFAULT = 'information';
-const CRM_NOTE_RANKING_DEFAULT = 2;
 const WEEKDAY_LABELS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 const DISPO_ITEMS_PREFIX = 'dispo_items:';
 const DISPO_ITEMS_LEGACY_PREFIX = '__dispo_items__:';
@@ -48,13 +43,6 @@ const BLOCK_DAY_LEGACY_MODE_OPTIONS = {
   full: { label: 'Ganzer Tag', start: '07:00', end: '16:30' },
   am: { label: 'Vormittag', start: '07:00', end: '12:00' },
   pm: { label: 'Nachmittag', start: '13:00', end: '16:30' },
-};
-const CRM_CATEGORY_LABELS = {
-  kunde: 'Kunde',
-  lieferant: 'Lieferant',
-  elektroplaner: 'Elektroplaner',
-  subunternehmer: 'Subunternehmer',
-  unternehmer: 'Unternehmer',
 };
 const HOLIDAY_TYPE_LABELS = {
   ferien: 'Ferien',
@@ -740,11 +728,6 @@ const state = {
   requestHistory: [],
   platformHolidays: [],
   schoolVacations: [],
-  crmContacts: [],
-  crmNotes: [],
-  selectedCrmContactId: null,
-  crmSearchQuery: '',
-  crmCategoryFilter: '',
   selectedWeek: getCurrentWeekValue(),
   currentPage: 'reports',
   projectSearchQuery: '',
@@ -788,7 +771,6 @@ const state = {
   isLoadingData: false,
   isSavingAbsence: false,
   isSavingConfirmation: false,
-  isSavingSaldo: false,
   isSavingSettings: false,
   isSchoolVacationImportRunning: false,
   schoolVacationImportStepIndex: -1,
@@ -878,7 +860,6 @@ function cacheElements() {
   elements.absencesTableBody = document.getElementById('absencesTableBody');
   elements.confirmationsTableBody = document.getElementById('confirmationsTableBody');
   elements.rejectedAbsencesTableBody = document.getElementById('rejectedAbsencesTableBody');
-  elements.saldoTableBody = document.getElementById('saldoTableBody');
   elements.missingReports = document.getElementById('missingReports');
   elements.submissionList = document.getElementById('submissionList');
   elements.missingList = document.getElementById('missingList');
@@ -947,10 +928,8 @@ function cacheElements() {
   elements.pages = {
     reports: document.getElementById('reportsPage'),
     absences: document.getElementById('absencesPage'),
-    saldo: document.getElementById('saldoPage'),
     projects: document.getElementById('projectsPage'),
     dispo: document.getElementById('dispoPage'),
-    crm: document.getElementById('crmPage'),
     settings: document.getElementById('settingsPage'),
     settingsSchoolVacations: document.getElementById('settingsSchoolVacationsPage'),
     settingsHolidays: document.getElementById('settingsHolidaysPage'),
@@ -1044,35 +1023,6 @@ function cacheElements() {
   elements.blockDayOptionsBody = document.getElementById('blockDayOptionsBody');
   elements.closeBlockDayModalButton = document.getElementById('closeBlockDayModalButton');
   elements.cancelBlockDayButton = document.getElementById('cancelBlockDayButton');
-  elements.crmAlert = document.getElementById('crmAlert');
-  elements.crmSearchInput = document.getElementById('crmSearchInput');
-  elements.crmCategoryFilterInput = document.getElementById('crmCategoryFilterInput');
-  elements.openCrmCreateModalButton = document.getElementById('openCrmCreateModalButton');
-  elements.crmContactListView = document.getElementById('crmContactListView');
-  elements.crmContactDetailView = document.getElementById('crmContactDetailView');
-  elements.backToCrmListButton = document.getElementById('backToCrmListButton');
-  elements.crmContactDetailInfo = document.getElementById('crmContactDetailInfo');
-  elements.crmContactModal = document.getElementById('crmContactModal');
-  elements.closeCrmContactModalButton = document.getElementById('closeCrmContactModalButton');
-  elements.crmContactForm = document.getElementById('crmContactForm');
-  elements.crmContactIdInput = document.getElementById('crmContactIdInput');
-  elements.crmCategoryInput = document.getElementById('crmCategoryInput');
-  elements.crmCompanyInput = document.getElementById('crmCompanyInput');
-  elements.crmFirstNameInput = document.getElementById('crmFirstNameInput');
-  elements.crmLastNameInput = document.getElementById('crmLastNameInput');
-  elements.crmStreetInput = document.getElementById('crmStreetInput');
-  elements.crmCityInput = document.getElementById('crmCityInput');
-  elements.crmPostalCodeInput = document.getElementById('crmPostalCodeInput');
-  elements.crmPhoneInput = document.getElementById('crmPhoneInput');
-  elements.crmEmailInput = document.getElementById('crmEmailInput');
-  elements.saveCrmContactButton = document.getElementById('saveCrmContactButton');
-  elements.resetCrmContactFormButton = document.getElementById('resetCrmContactFormButton');
-  elements.crmContactsTableBody = document.getElementById('crmContactsTableBody');
-  elements.crmNotesHeader = document.getElementById('crmNotesHeader');
-  elements.crmNoteForm = document.getElementById('crmNoteForm');
-  elements.crmNoteTargetUidInput = document.getElementById('crmNoteTargetUidInput');
-  elements.crmNoteTextInput = document.getElementById('crmNoteTextInput');
-  elements.crmNotesList = document.getElementById('crmNotesList');
 }
 
 function bindEvents() {
@@ -1138,7 +1088,6 @@ function bindEvents() {
   }
   elements.reportsTableBody.addEventListener('click', handleReportsTableClick);
   elements.absencesTableBody.addEventListener('click', handleAbsencesTableClick);
-  elements.saldoTableBody.addEventListener('click', handleSaldoTableClick);
   elements.reportsPrevPageButton.addEventListener('click', goToPreviousReportsPage);
   elements.reportsNextPageButton.addEventListener('click', goToNextReportsPage);
   elements.closeReportEditModalButton.addEventListener('click', closeReportEditModal);
@@ -1335,40 +1284,6 @@ function bindEvents() {
     elements.blockDayModal.addEventListener('click', (event) => {
       if (event.target?.dataset?.closeBlockDayModal === 'true') {
         closeBlockDayModal();
-      }
-    });
-  }
-  if (elements.crmContactForm) {
-    elements.crmContactForm.addEventListener('submit', handleCrmContactSubmit);
-  }
-  if (elements.crmSearchInput) {
-    elements.crmSearchInput.addEventListener('input', handleCrmSearchInput);
-  }
-  if (elements.crmCategoryFilterInput) {
-    elements.crmCategoryFilterInput.addEventListener('change', handleCrmCategoryFilterChange);
-  }
-  if (elements.openCrmCreateModalButton) {
-    elements.openCrmCreateModalButton.addEventListener('click', () => openCrmContactModal());
-  }
-  if (elements.backToCrmListButton) {
-    elements.backToCrmListButton.addEventListener('click', closeCrmContactDetail);
-  }
-  if (elements.resetCrmContactFormButton) {
-    elements.resetCrmContactFormButton.addEventListener('click', resetCrmContactForm);
-  }
-  if (elements.closeCrmContactModalButton) {
-    elements.closeCrmContactModalButton.addEventListener('click', closeCrmContactModal);
-  }
-  if (elements.crmContactsTableBody) {
-    elements.crmContactsTableBody.addEventListener('click', handleCrmContactsTableClick);
-  }
-  if (elements.crmNoteForm) {
-    elements.crmNoteForm.addEventListener('submit', handleCrmNoteSubmit);
-  }
-  if (elements.crmContactModal) {
-    elements.crmContactModal.addEventListener('click', (event) => {
-      if (event.target?.dataset?.closeCrmContactModal === 'true') {
-        closeCrmContactModal();
       }
     });
   }
@@ -1639,9 +1554,6 @@ function resetAppState() {
   state.requestHistory = [];
   state.platformHolidays = [];
   state.schoolVacations = [];
-  state.crmContacts = [];
-  state.crmNotes = [];
-  state.selectedCrmContactId = null;
   state.projectSearchQuery = '';
   state.editingProjectId = null;
   state.showControlledReports = false;
@@ -1727,9 +1639,6 @@ async function loadData() {
       state.holidayRequests = [];
       state.platformHolidays = [];
       state.schoolVacations = [];
-      state.crmContacts = [];
-      state.crmNotes = [];
-      state.selectedCrmContactId = null;
       elements.dataTimestamp.textContent = 'Kein Zugriff – is_admin ist für dieses Profil nicht aktiviert';
       finishDataLoad(requestId);
       render();
@@ -1782,17 +1691,6 @@ async function loadData() {
       .from('school_vacations')
       .select('*')
       .order('start_date', { ascending: true });
-    const crmContactsQuery = state.supabase
-      .from('crm_contacts')
-      .select('*')
-      .order('last_name', { ascending: true })
-      .order('first_name', { ascending: true });
-    const crmNotesQuery = state.supabase
-      .from(NOTES_TABLE)
-      .select('*')
-      .eq('note_type', CRM_NOTE_TYPE)
-      .order('created_at', { ascending: false })
-      .limit(1000);
     const [
       { data: reports, error: reportsError },
       { data: profiles, error: profilesError },
@@ -1802,8 +1700,6 @@ async function loadData() {
       { data: dailyAssignments, error: dailyAssignmentsError },
       { data: platformHolidays, error: platformHolidaysError },
       { data: schoolVacations, error: schoolVacationsError },
-      { data: crmContacts, error: crmContactsError },
-      { data: crmNotes, error: crmNotesError },
     ] = await Promise.all([
       reportsQuery,
       profilesQuery,
@@ -1813,8 +1709,6 @@ async function loadData() {
       dailyAssignmentsQuery,
       platformHolidaysQuery,
       schoolVacationsQuery,
-      crmContactsQuery,
-      crmNotesQuery,
     ]);
 
     if (reportsError) throw reportsError;
@@ -1825,8 +1719,6 @@ async function loadData() {
     if (dailyAssignmentsError && !isMissingTableError(dailyAssignmentsError, 'daily_assignments')) throw dailyAssignmentsError;
     if (platformHolidaysError && !isMissingTableError(platformHolidaysError, HOLIDAY_TABLE)) throw platformHolidaysError;
     if (schoolVacationsError && !isMissingTableError(schoolVacationsError, 'school_vacations')) throw schoolVacationsError;
-    if (crmContactsError && !isMissingTableError(crmContactsError, 'crm_contacts')) throw crmContactsError;
-    if (crmNotesError && !isMissingTableError(crmNotesError, NOTES_TABLE)) throw crmNotesError;
     if (!isActiveDataLoad(requestId)) {
       return;
     }
@@ -1839,11 +1731,6 @@ async function loadData() {
     state.dailyAssignments = dailyAssignments ?? [];
     state.platformHolidays = platformHolidays ?? [];
     state.schoolVacations = schoolVacations ?? [];
-    state.crmContacts = crmContacts ?? [];
-    state.crmNotes = crmNotes ?? [];
-    if (state.selectedCrmContactId && !state.crmContacts.some((item) => String(item.id) === String(state.selectedCrmContactId))) {
-      state.selectedCrmContactId = null;
-    }
     state.roleAssignments = [];
     syncEmployeeSelection();
     syncAbsenceSelection();
@@ -1939,9 +1826,6 @@ async function loadDemoData() {
   state.requestHistory = [];
   state.platformHolidays = [...demoPlatformHolidays];
   state.schoolVacations = [];
-  state.crmContacts = [];
-  state.crmNotes = [];
-  state.selectedCrmContactId = null;
   syncEmployeeSelection();
   syncAbsenceSelection();
   elements.dataTimestamp.textContent = `Demo-Daten geladen: ${new Date().toLocaleString('de-CH')}`;
@@ -1991,7 +1875,6 @@ function render() {
   renderConfirmationsTable();
   renderRejectedAbsencesModalState();
   renderRejectedAbsencesTable();
-  renderSaldoTable();
   renderProjectsTable();
   renderDispoPlanner();
   renderSettingsUsersTable();
@@ -2000,9 +1883,6 @@ function render() {
   renderSettingsSchoolVacationsTable();
   renderHolidayImportProgress();
   renderSchoolVacationImportProgress();
-  renderCrmContactsTable();
-  renderCrmContactDetail();
-  renderCrmNotesPanel();
   renderLoadingOverlay();
 }
 
@@ -2068,10 +1948,8 @@ function renderPages() {
   const pageTitles = {
     reports: 'Wochenrapporte',
     absences: 'Ferien & Absenzen',
-    saldo: 'Saldo',
     projects: 'Projekte / Aufträge',
     dispo: 'Dispo / Wochenplanung',
-    crm: 'CRM',
     settings: 'Einstellungen',
     settingsSchoolVacations: 'Ferienzeit verwalten',
     settingsHolidays: 'Feiertage verwalten',
@@ -2282,44 +2160,6 @@ function renderRejectedAbsencesTable() {
           <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
           <td>${escapeHtml(formatDate(request.start_date))}</td>
           <td>${escapeHtml(formatDate(request.end_date))}</td>
-        </tr>
-      `;
-    })
-    .join('');
-}
-
-function renderSaldoTable() {
-  if (!elements.saldoTableBody) {
-    return;
-  }
-
-  const profiles = getReportableProfiles();
-  if (!profiles.length) {
-    elements.saldoTableBody.innerHTML = '<tr><td colspan="11">Keine Profile gefunden.</td></tr>';
-    return;
-  }
-
-  const currentIsoWeek = getCurrentIsoWeekNumber();
-  elements.saldoTableBody.innerHTML = profiles
-    .map((profile) => {
-      const metrics = getProfileSaldoMetrics(profile, currentIsoWeek);
-      return `
-        <tr>
-          <td>${escapeHtml(profile.full_name || '–')}</td>
-          <td>${renderSaldoBalance(metrics.overtimeBalanceHours)}</td>
-          <td>${renderSaldoBalance(metrics.vacationBalanceHours)}</td>
-          <td>${metrics.bookedVacationsHours.toFixed(2)}</td>
-          <td>${metrics.futureVacationsHours.toFixed(2)}</td>
-          <td>${metrics.bookedReportedHours.toFixed(2)}</td>
-          <td>${metrics.bookedUnpaidHolidayHours.toFixed(2)}</td>
-          <td>${renderSaldoInput(profile.id, 'vacation_allowance_hours', metrics.vacationAllowanceHours)}</td>
-          <td>${renderSaldoInput(profile.id, 'credited_hours', metrics.creditedHours)}</td>
-          <td>${renderSaldoInput(profile.id, 'weekly_hours', metrics.weeklyHours, 0.25)}</td>
-          <td>
-            <button class="button button-small button-primary" type="button" data-action="save-saldo-profile" data-profile-id="${escapeAttribute(profile.id)}" ${state.isSavingSaldo ? 'disabled' : ''}>
-              Speichern
-            </button>
-          </td>
         </tr>
       `;
     })
@@ -2772,19 +2612,6 @@ function handleConfirmationsTableClick(event) {
   }
 }
 
-function handleSaldoTableClick(event) {
-  const trigger = event.target.closest('[data-action="save-saldo-profile"]');
-  if (!trigger) {
-    return;
-  }
-
-  const profileId = trigger.dataset.profileId;
-  if (!profileId) {
-    return;
-  }
-
-  handleSaveSaldoProfile(profileId);
-}
 
 async function handleSettingsUsersTableClick(event) {
   const trigger = event.target.closest('[data-action]');
@@ -3716,142 +3543,6 @@ async function handleSchoolVacationImportFormSubmit(event) {
   }
 }
 
-function resetCrmContactForm() {
-  if (elements.crmContactForm) {
-    elements.crmContactForm.reset();
-  }
-  if (elements.crmContactIdInput) {
-    elements.crmContactIdInput.value = '';
-  }
-  closeCrmContactModal();
-}
-
-async function handleCrmContactSubmit(event) {
-  event.preventDefault();
-  if (!state.supabase || state.isSavingSettings) return;
-
-  const contactId = String(elements.crmContactIdInput?.value || '').trim();
-  const payload = {
-    category: String(elements.crmCategoryInput?.value || '').trim().toLowerCase(),
-    company_name: String(elements.crmCompanyInput?.value || '').trim() || null,
-    first_name: String(elements.crmFirstNameInput?.value || '').trim(),
-    last_name: String(elements.crmLastNameInput?.value || '').trim(),
-    street: String(elements.crmStreetInput?.value || '').trim() || null,
-    city: String(elements.crmCityInput?.value || '').trim() || null,
-    postal_code: String(elements.crmPostalCodeInput?.value || '').trim() || null,
-    phone: String(elements.crmPhoneInput?.value || '').trim() || null,
-    email: String(elements.crmEmailInput?.value || '').trim().toLowerCase() || null,
-  };
-  if (!payload.first_name || !payload.last_name || !Object.prototype.hasOwnProperty.call(CRM_CATEGORY_LABELS, payload.category)) {
-    showInlineAlert(elements.crmAlert, 'Bitte Kategorie, Vorname und Nachname korrekt erfassen.', true);
-    return;
-  }
-
-  state.isSavingSettings = true;
-  try {
-    const query = contactId
-      ? state.supabase.from('crm_contacts').update(payload).eq('id', contactId)
-      : state.supabase.from('crm_contacts').insert(payload);
-    const { error } = await query;
-    if (error) throw error;
-
-    showInlineAlert(elements.crmAlert, contactId ? 'Kontakt aktualisiert.' : 'Kontakt erstellt.', false);
-    resetCrmContactForm();
-    await loadData();
-  } catch (error) {
-    console.error(error);
-    showInlineAlert(elements.crmAlert, `Kontakt konnte nicht gespeichert werden: ${error.message}`, true);
-  } finally {
-    state.isSavingSettings = false;
-    render();
-  }
-}
-
-async function handleCrmContactsTableClick(event) {
-  if (state.isSavingSettings) return;
-  const button = event.target.closest('button[data-action]');
-  const row = event.target.closest('tr[data-action="open-crm-contact"]');
-  const contactId = button?.dataset.contactId || row?.dataset.contactId;
-  if (!contactId) return;
-  const contact = state.crmContacts.find((item) => String(item.id) === String(contactId));
-  if (!contact) return;
-
-  if (button?.dataset.action === 'open-crm-contact' || row) {
-    openCrmContactDetailPage(contact);
-    return;
-  }
-
-  if (button?.dataset.action === 'edit-crm-contact') {
-    openCrmContactModal(contact);
-    return;
-  }
-
-  if (button?.dataset.action === 'delete-crm-contact') {
-    if (!confirm('Kontakt wirklich löschen?')) return;
-    state.isSavingSettings = true;
-    try {
-      const { error } = await state.supabase.from('crm_contacts').delete().eq('id', contactId);
-      if (error) throw error;
-      if (String(state.selectedCrmContactId) === String(contactId)) {
-        state.selectedCrmContactId = null;
-      }
-      showInlineAlert(elements.crmAlert, 'Kontakt gelöscht.', false);
-      await loadData();
-    } catch (error) {
-      console.error(error);
-      showInlineAlert(elements.crmAlert, `Kontakt konnte nicht gelöscht werden: ${error.message}`, true);
-    } finally {
-      state.isSavingSettings = false;
-      render();
-    }
-  }
-}
-
-function handleCrmSearchInput(event) {
-  state.crmSearchQuery = String(event.target.value || '').trim().toLowerCase();
-  renderCrmContactsTable();
-}
-
-function handleCrmCategoryFilterChange(event) {
-  state.crmCategoryFilter = String(event.target.value || '').trim().toLowerCase();
-  renderCrmContactsTable();
-}
-
-async function handleCrmNoteSubmit(event) {
-  event.preventDefault();
-  if (!state.supabase || state.isSavingSettings) return;
-  const targetUid = String(elements.crmNoteTargetUidInput?.value || '').trim();
-  const noteText = String(elements.crmNoteTextInput?.value || '').trim();
-  if (!targetUid) {
-    showInlineAlert(elements.crmAlert, 'Bitte zuerst einen Kontakt auswählen.', true);
-    return;
-  }
-  if (!noteText) {
-    showInlineAlert(elements.crmAlert, 'Bitte zuerst einen Kommentar erfassen.', true);
-    return;
-  }
-
-  state.isSavingSettings = true;
-  try {
-    const { error } = await state.supabase.from(NOTES_TABLE).insert({
-      target_uid: targetUid,
-      note_type: CRM_NOTE_TYPE,
-      note_text: noteText,
-    });
-    if (error) throw error;
-    if (elements.crmNoteTextInput) {
-      elements.crmNoteTextInput.value = '';
-    }
-    showInlineAlert(elements.crmAlert, 'Notiz gespeichert.', false);
-    await loadData();
-  } catch (error) {
-    console.error(error);
-    showInlineAlert(elements.crmAlert, `Notiz konnte nicht gespeichert werden: ${error.message}`, true);
-  } finally {
-    state.isSavingSettings = false;
-    render();
-  }
-}
 
 async function handleConfirmReport(reportId) {
   if (!reportId || state.isSavingReport) {
@@ -4288,46 +3979,6 @@ async function handleDeleteReport(reportId) {
   }
 }
 
-async function handleSaveSaldoProfile(profileId) {
-  if (!profileId || state.isSavingSaldo) {
-    return;
-  }
-
-  const profile = getProfileById(profileId);
-  if (!profile) {
-    return;
-  }
-
-  const creditedHoursValue = getSaldoInputValue(profileId, 'credited_hours');
-  const weeklyHoursValue = getSaldoInputValue(profileId, 'weekly_hours');
-
-  const updates = {
-    credited_hours: creditedHoursValue ?? Number(profile.credited_hours || 0),
-    weekly_hours: weeklyHoursValue && weeklyHoursValue > 0 ? weeklyHoursValue : Number(profile.weekly_hours || 40) || 40,
-  };
-
-  state.isSavingSaldo = true;
-  try {
-    if (state.isDemoMode) {
-      const demoProfile = demoProfiles.find((item) => String(item.id) === String(profileId));
-      if (!demoProfile) {
-        throw new Error('Demo-Profil nicht gefunden');
-      }
-      Object.assign(demoProfile, updates);
-    } else {
-      const { error } = await state.supabase.from('app_profiles').update(updates).eq('id', profileId);
-      if (error) throw error;
-    }
-
-    await loadData();
-  } catch (error) {
-    console.error(error);
-    alert(`Saldo konnte nicht gespeichert werden: ${error.message}`);
-  } finally {
-    state.isSavingSaldo = false;
-    render();
-  }
-}
 
 async function synchronizeAllApprenticeSchoolReportsForYear(year) {
   const apprentices = state.profiles.filter((profile) => String(profile.role_label || '').trim() === 'Lehrling');
@@ -4789,152 +4440,6 @@ function renderHistoryActionsCell(entry) {
   `;
 }
 
-function renderCrmContactsTable() {
-  if (!elements.crmContactsTableBody) return;
-  if (elements.crmSearchInput) {
-    elements.crmSearchInput.value = state.crmSearchQuery;
-  }
-  if (elements.crmCategoryFilterInput) {
-    elements.crmCategoryFilterInput.value = state.crmCategoryFilter;
-  }
-  const rows = getFilteredCrmContacts().sort((left, right) => `${left.last_name || ''} ${left.first_name || ''}`.localeCompare(`${right.last_name || ''} ${right.first_name || ''}`, 'de'));
-  if (!rows.length) {
-    elements.crmContactsTableBody.innerHTML = '<tr><td colspan="7">Keine Kontakte für den gewählten Filter gefunden.</td></tr>';
-    return;
-  }
-
-  elements.crmContactsTableBody.innerHTML = rows.map((contact) => {
-    const categoryLabel = CRM_CATEGORY_LABELS[String(contact.category || '').toLowerCase()] || contact.category || '—';
-    return `<tr class="crm-row-clickable" data-action="open-crm-contact" data-contact-id="${escapeAttribute(contact.id)}">
-      <td>${escapeHtml(categoryLabel)}</td>
-      <td>${escapeHtml(contact.company_name || '—')}</td>
-      <td>${escapeHtml(contact.first_name || '')}</td>
-      <td>${escapeHtml(contact.last_name || '')}</td>
-      <td>${escapeHtml(contact.phone || '—')}</td>
-      <td>${escapeHtml(contact.email || '—')}</td>
-      <td>
-        <div class="table-row-actions">
-          <button class="button button-small button-secondary" type="button" data-action="edit-crm-contact" data-contact-id="${escapeAttribute(contact.id)}">Bearbeiten</button>
-          <button class="button button-small button-danger" type="button" data-action="delete-crm-contact" data-contact-id="${escapeAttribute(contact.id)}">Löschen</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function renderCrmNotesPanel() {
-  if (!elements.crmNotesList || !elements.crmNotesHeader || !elements.crmNoteTargetUidInput) return;
-  const selectedContact = state.crmContacts.find((entry) => String(entry.id) === String(state.selectedCrmContactId));
-  if (!selectedContact) {
-    elements.crmNotesHeader.textContent = 'Kein Kontakt ausgewählt.';
-    elements.crmNoteTargetUidInput.value = '';
-    elements.crmNotesList.innerHTML = '<li class="subtle-text">Wähle einen Kontakt aus der Tabelle aus.</li>';
-    return;
-  }
-
-  const displayName = `${selectedContact.first_name || ''} ${selectedContact.last_name || ''}`.trim();
-  elements.crmNotesHeader.textContent = `Notizen für ${displayName || selectedContact.id}${selectedContact.company_name ? ` · ${selectedContact.company_name}` : ''}`;
-  elements.crmNoteTargetUidInput.value = selectedContact.id;
-
-  const notes = state.crmNotes
-    .filter((note) => String(note.target_uid) === String(selectedContact.id))
-    .sort((left, right) => String(right.created_at || '').localeCompare(String(left.created_at || '')));
-  if (!notes.length) {
-    elements.crmNotesList.innerHTML = '<li class="subtle-text">Noch keine Notiz vorhanden.</li>';
-    return;
-  }
-
-  elements.crmNotesList.innerHTML = notes.map((note) => `
-    <li class="status-item">
-      <div>
-        <strong>${escapeHtml(formatDateTime(note.created_at))}</strong>
-        <div>${escapeHtml(note.note_text || '')}</div>
-      </div>
-    </li>
-  `).join('');
-}
-
-function renderCrmContactDetail() {
-  if (!elements.crmContactListView || !elements.crmContactDetailView || !elements.crmContactDetailInfo) return;
-  const selectedContact = state.crmContacts.find((entry) => String(entry.id) === String(state.selectedCrmContactId));
-  const hasSelection = Boolean(selectedContact);
-  elements.crmContactListView.classList.toggle('hidden', hasSelection);
-  elements.crmContactDetailView.classList.toggle('hidden', !hasSelection);
-  if (!selectedContact) {
-    elements.crmContactDetailInfo.innerHTML = '';
-    return;
-  }
-
-  const categoryLabel = CRM_CATEGORY_LABELS[selectedContact.category] || selectedContact.category || '—';
-  elements.crmContactDetailInfo.innerHTML = `
-    <dl>
-      <dt>Kategorie</dt><dd>${escapeHtml(categoryLabel)}</dd>
-      <dt>Firma</dt><dd>${escapeHtml(selectedContact.company_name || '—')}</dd>
-      <dt>Vorname</dt><dd>${escapeHtml(selectedContact.first_name || '—')}</dd>
-      <dt>Nachname</dt><dd>${escapeHtml(selectedContact.last_name || '—')}</dd>
-      <dt>Strasse</dt><dd>${escapeHtml(selectedContact.street || '—')}</dd>
-      <dt>Ort</dt><dd>${escapeHtml(selectedContact.city || '—')}</dd>
-      <dt>PLZ</dt><dd>${escapeHtml(selectedContact.postal_code || '—')}</dd>
-      <dt>Telefon</dt><dd>${escapeHtml(selectedContact.phone || '—')}</dd>
-      <dt>E-Mail</dt><dd>${escapeHtml(selectedContact.email || '—')}</dd>
-    </dl>
-  `;
-}
-
-function openCrmContactModal(contact = null) {
-  if (!elements.crmContactModal) return;
-  elements.crmContactModal.classList.remove('hidden');
-  if (!contact) {
-    if (elements.crmContactForm) {
-      elements.crmContactForm.reset();
-    }
-    if (elements.crmContactIdInput) {
-      elements.crmContactIdInput.value = '';
-    }
-    return;
-  }
-
-  elements.crmContactIdInput.value = contact.id || '';
-  elements.crmCategoryInput.value = contact.category || 'kunde';
-  elements.crmCompanyInput.value = contact.company_name || '';
-  elements.crmFirstNameInput.value = contact.first_name || '';
-  elements.crmLastNameInput.value = contact.last_name || '';
-  elements.crmStreetInput.value = contact.street || '';
-  elements.crmCityInput.value = contact.city || '';
-  elements.crmPostalCodeInput.value = contact.postal_code || '';
-  elements.crmPhoneInput.value = contact.phone || '';
-  elements.crmEmailInput.value = contact.email || '';
-}
-
-function closeCrmContactModal() {
-  if (!elements.crmContactModal) return;
-  elements.crmContactModal.classList.add('hidden');
-}
-
-function closeCrmContactDetail() {
-  state.selectedCrmContactId = null;
-  renderCrmContactsTable();
-  renderCrmContactDetail();
-  renderCrmNotesPanel();
-}
-
-function getFilteredCrmContacts() {
-  return state.crmContacts.filter((contact) => {
-    const category = String(contact.category || '').trim().toLowerCase();
-    if (state.crmCategoryFilter && category !== state.crmCategoryFilter) {
-      return false;
-    }
-    if (!state.crmSearchQuery) {
-      return true;
-    }
-    const haystack = [
-      contact.company_name || '',
-      contact.first_name || '',
-      contact.last_name || '',
-    ].join(' ').toLowerCase();
-    return haystack.includes(state.crmSearchQuery);
-  });
-}
 
 function renderSettingsUsersTable() {
   if (!elements.settingsUsersTableBody) return;
@@ -5706,15 +5211,6 @@ function closeProjectModal() {
   elements.projectModal.classList.add('hidden');
 }
 
-function openCrmContactDetailPage(contact) {
-  if (!contact?.id) return;
-  const detailUrl = new URL('./crm-contact-detail.html', window.location.href);
-  detailUrl.searchParams.set('contactId', String(contact.id));
-  detailUrl.searchParams.set('firstName', contact.first_name || '');
-  detailUrl.searchParams.set('lastName', contact.last_name || '');
-  detailUrl.searchParams.set('company', contact.company_name || '');
-  window.location.href = detailUrl.toString();
-}
 
 async function handleDispoTableClick(event) {
   const button = event.target.closest('button[data-action]');
@@ -7789,72 +7285,7 @@ function normalizeTimeForInput(value) {
   return normalized === '–' ? '' : normalized;
 }
 
-function renderSaldoInput(profileId, fieldName, value, step = 0.5) {
-  return `<input class="saldo-input" type="text" inputmode="decimal" data-step="${escapeAttribute(step)}" data-saldo-input="${escapeAttribute(fieldName)}" data-profile-id="${escapeAttribute(profileId)}" value="${escapeAttribute(Number(value || 0).toFixed(2))}" />`;
-}
 
-function renderSaldoBalance(value) {
-  const numericValue = Number(value) || 0;
-  const className = numericValue < 0 ? 'saldo-balance-negative' : 'saldo-balance-positive';
-  return `<span class="${className}">${numericValue.toFixed(2)}</span>`;
-}
-
-function parseLocalizedNumber(value) {
-  const raw = String(value ?? '').trim();
-  if (!raw) return 0;
-
-  const normalized = raw.replace(',', '.');
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function getSaldoInputValue(profileId, fieldName) {
-  const input = document.querySelector(`[data-saldo-input="${fieldName}"][data-profile-id="${profileId}"]`);
-  if (!input) {
-    return null;
-  }
-  return parseLocalizedNumber(input.value);
-}
-
-function getProfileSaldoMetrics(profile, currentIsoWeek = getCurrentIsoWeekNumber()) {
-  const vacationAllowanceHours = Number(profile.vacation_allowance_hours || 0);
-  const bookedReportedHours = Number(profile.booked_reported_hours || 0);
-  const bookedVacationsHours = Number(
-    profile.booked_vacations_hours ?? profile.booked_vacation_hours ?? 0
-  );
-  const todayIso = getTodayIsoDate();
-  const futureVacationsHours = state.futureVacationReports
-    .filter((report) =>
-      String(report?.profile_id) === String(profile.id)
-      && getAbsenceTypeCode(report) === 1
-      && String(report?.work_date || '') > todayIso)
-    .reduce((sum, report) => sum + (getAbsenceMinutes(report) / 60), 0);
-  const bookedUnpaidHolidayHours = Number(profile.booked_unpaid_holiday_hours || 0);
-  const creditedHours = Number(profile.credited_hours || 0);
-  const weeklyHours = Number(profile.weekly_hours || 40);
-  const expectedHoursUntilLastWeek = Math.max(currentIsoWeek - 1, 0) * weeklyHours;
-  const overtimeBalanceHours =
-    expectedHoursUntilLastWeek - creditedHours - bookedReportedHours - bookedUnpaidHolidayHours;
-  const vacationBalanceHours = vacationAllowanceHours - bookedVacationsHours - futureVacationsHours;
-
-  return {
-    vacationAllowanceHours,
-    bookedReportedHours,
-    bookedVacationsHours,
-    futureVacationsHours,
-    bookedUnpaidHolidayHours,
-    creditedHours,
-    weeklyHours,
-    overtimeBalanceHours,
-    vacationBalanceHours,
-  };
-}
-
-function getCurrentIsoWeekNumber() {
-  const weekValue = getCurrentWeekValue();
-  const [, weekPart] = weekValue.split('-W');
-  return Number(weekPart || 1);
-}
 
 function buildAdjustedMinutesUpdatePayload(report, adjustedMinutes) {
   return { total_adjusted_work_minutes: adjustedMinutes };
