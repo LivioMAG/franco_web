@@ -509,7 +509,7 @@ function drawReportHeader(pdf, { profile, weekRange, calendarWeek, marginLeft, c
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(isTemporary ? 18 : 24);
   pdf.setTextColor(isTemporary ? 0 : 215, 0, isTemporary ? 0 : 21);
-  pdf.text(isTemporary ? 'temporär' : 'MARÉCHAUX', marginLeft, 14);
+  pdf.text(isTemporary ? 'Temporär' : 'MARÉCHAUX', marginLeft, 14);
   if (!isTemporary) {
     pdf.setFontSize(10);
     pdf.setTextColor(0, 0, 0);
