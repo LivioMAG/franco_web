@@ -1,6 +1,6 @@
 # Datenmodell
 
-Das Referenzschema liegt in `supabase/schema.sql`. Chronologische Änderungen liegen unter `supabase/migrations/`.
+Das Referenzschema liegt als konsolidiertes Stamm-SQL in `supabase/schema.sql`. Chronologische SQL-Migrationen wurden in dieses eine Schema zusammengeführt.
 
 ## Wichtige Bereiche
 

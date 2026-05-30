@@ -17,7 +17,7 @@ Die App enthält derzeit mehrere Bereiche in einer statischen Oberfläche:
 - Projekt-/Auftragsverwaltung.
 - Dispo-/Planungsansichten.
 - Einstellungen und administrative Stammdaten.
-- Supabase-Schema und Migrationen.
+- Supabase-Schema als konsolidiertes Stamm-SQL.
 
 ## Zielstruktur für eine saubere Weiterentwicklung
 
@@ -77,8 +77,7 @@ Die aktuelle App kann weiterhin ohne Framework betrieben werden. Für bessere Wa
 │   │   ├── dispo.css
 │   │   └── settings.css
 ├── supabase/
-│   ├── schema.sql                     # Vollständiges Schema oder Referenzschema
-│   └── migrations/                    # Chronologische SQL-Migrationen
+│   └── schema.sql                     # Vollständiges konsolidiertes Stamm-SQL
 └── docs/
     ├── architecture.md                # Architekturentscheidungen und Modulgrenzen
     ├── deployment.md                  # Hosting, Supabase-Setup und Umgebungen
@@ -93,12 +92,12 @@ Die aktuelle App kann weiterhin ohne Framework betrieben werden. Für bessere Wa
 - Konfigurierbare Werte sollen bevorzugt in JSON-Dateien unter `config/` liegen.
 - Statische Bilder, Icons und Fonts gehören nach `assets/`.
 - CSS soll schrittweise aus großen Einzeldateien in `styles/base.css`, `styles/layout.css`, `styles/components.css` und seitenbezogene Dateien unter `styles/pages/` aufgeteilt werden.
-- Datenbankschema-Änderungen gehören als neue SQL-Migration nach `supabase/migrations/`.
+- Datenbankschema-Änderungen gehören in das konsolidierte Stamm-SQL `supabase/schema.sql`.
 
 ## Entwicklungsleitlinien
 
 - Keine Framework-Abhängigkeiten einführen, solange nicht ausdrücklich gewünscht.
 - Keine Secrets oder produktiven Zugangsdaten committen.
 - Bestehende Vanilla-JS-Patterns respektieren und kleine, nachvollziehbare Funktionen bevorzugen.
-- Vor Änderungen prüfen, ob eine Funktion bereits in `script.js` oder den SQL-Migrationen existiert.
+- Vor Änderungen prüfen, ob eine Funktion bereits in `script.js` oder `supabase/schema.sql` existiert.
 - Änderungen an sichtbarer UI sollten nach Möglichkeit manuell im Browser geprüft werden.
