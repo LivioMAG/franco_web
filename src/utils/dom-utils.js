@@ -79,3 +79,21 @@ async function fileToDataUrl(url) {
     reader.readAsDataURL(blob);
   });
 }
+
+function renderLucideIcons() {
+  if (!window.lucide?.createIcons) return;
+  window.lucide.createIcons({
+    attrs: {
+      'stroke-width': 2.2,
+      'aria-hidden': 'true',
+    },
+  });
+}
+
+function getIconMarkup(name, className = 'app-icon') {
+  return `<i class="${escapeAttribute(className)}" data-lucide="${escapeAttribute(name)}" aria-hidden="true"></i>`;
+}
+
+function renderIconButtonContent(iconName, accessibleLabel) {
+  return `${getIconMarkup(iconName)}<span class="visually-hidden">${escapeHtml(accessibleLabel)}</span>`;
+}

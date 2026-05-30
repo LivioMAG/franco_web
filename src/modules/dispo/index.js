@@ -8,7 +8,7 @@ function renderDispoPlanner() {
     const isWeekend = isWeekendDate(date);
     const hasEditableProfiles = getActiveProfiles().some((profile) => !isWeeklyReportLocked(profile.id, date));
     const bulkAssignButton = !isWeekend && hasEditableProfiles
-      ? `<button class="button button-secondary button-icon-only" type="button" data-action="bulk-dispo-column" data-date="${escapeAttribute(date)}" title="Ganzer Tag disponieren" aria-label="Ganzer Tag disponieren">＋</button>`
+      ? `<button class="button button-secondary button-icon-only" type="button" data-action="bulk-dispo-column" data-date="${escapeAttribute(date)}" title="Ganzer Tag disponieren" aria-label="Ganzer Tag disponieren">${renderIconButtonContent('calendar-plus', 'Ganzer Tag disponieren')}</button>`
       : '';
     return `<th><div class="dispo-header-cell">${escapeHtml(getWeekdayLabel(date))}<span class="subtle-text">${escapeHtml(formatDate(date))}</span>${bulkAssignButton}</div></th>`;
   }).join('')}</tr>`;
@@ -17,10 +17,11 @@ function renderDispoPlanner() {
     const cells = dates.map((date) => renderDispoCell(profile.id, date)).join('');
     const hasEditableWeekdays = dates.some((date) => !isWeekendDate(date) && !isWeeklyReportLocked(profile.id, date));
     const bulkAssignRowButton = hasEditableWeekdays
-      ? `<button class="button button-secondary button-icon-only" type="button" data-action="bulk-dispo-row" data-profile-id="${escapeAttribute(profile.id)}" title="Woche für Mitarbeiter disponieren" aria-label="Woche für Mitarbeiter disponieren">＋</button>`
+      ? `<button class="button button-secondary button-icon-only" type="button" data-action="bulk-dispo-row" data-profile-id="${escapeAttribute(profile.id)}" title="Woche für Mitarbeiter disponieren" aria-label="Woche für Mitarbeiter disponieren">${renderIconButtonContent('calendar-plus', 'Woche für Mitarbeiter disponieren')}</button>`
       : '';
     return `<tr><td><div class="dispo-name-cell"><strong>${escapeHtml(profile.full_name || profile.email || 'Unbekannt')}</strong>${bulkAssignRowButton}</div></td>${cells}</tr>`;
   }).join('');
+  renderLucideIcons();
 }
 
 function renderDispoCell(profileId, date) {
@@ -46,7 +47,7 @@ function renderDispoCell(profileId, date) {
     : (assignmentItems.length ? assignmentItems : fallbackItems);
   const hasAutoAbsenceFromWeeklyReport = !isLocked && !assignmentItems.length && weeklyAbsenceItems.length > 0;
   const addButton = (!hasFullDayBlock && !isLocked && !hasAutoAbsenceFromWeeklyReport)
-    ? `<button class="button button-secondary button-icon-only" type="button" data-action="assign-dispo" data-profile-id="${escapeAttribute(profileId)}" data-date="${escapeAttribute(date)}" title="Dispo hinzufügen" aria-label="Dispo hinzufügen">＋</button>`
+    ? `<button class="button button-secondary button-icon-only" type="button" data-action="assign-dispo" data-profile-id="${escapeAttribute(profileId)}" data-date="${escapeAttribute(date)}" title="Dispo hinzufügen" aria-label="Dispo hinzufügen">${renderIconButtonContent('plus', 'Dispo hinzufügen')}</button>`
     : '';
   const blockTagBadges = blockItems.length
     ? `<div class="dispo-items">${blockItems.map((item) => `<div class="dispo-item-row"><span class="dispo-item-text">${escapeHtml(item.label)}</span></div>`).join('')}</div>`
@@ -62,7 +63,7 @@ function renderDispoCell(profileId, date) {
   const visibleItems = isExpanded ? items : items.slice(0, 1);
   const hiddenCount = Math.max(0, items.length - visibleItems.length);
   const expandToggle = items.length > 1
-    ? `<button class="button button-ghost dispo-expand-button" type="button" data-action="toggle-dispo-cell" data-cell-key="${escapeAttribute(cellKey)}" aria-expanded="${isExpanded ? 'true' : 'false'}" title="${isExpanded ? 'Weitere Einträge ausblenden' : 'Alle Einträge anzeigen'}">${isExpanded ? '▴' : '▾'}${hiddenCount && !isExpanded ? `<span class="dispo-expand-count">+${hiddenCount}</span>` : ''}</button>`
+    ? `<button class="button button-ghost dispo-expand-button" type="button" data-action="toggle-dispo-cell" data-cell-key="${escapeAttribute(cellKey)}" aria-expanded="${isExpanded ? 'true' : 'false'}" title="${isExpanded ? 'Weitere Einträge ausblenden' : 'Alle Einträge anzeigen'}">${getIconMarkup(isExpanded ? 'chevron-up' : 'chevron-down')}${hiddenCount && !isExpanded ? `<span class="dispo-expand-count">+${hiddenCount}</span>` : ''}</button>`
     : '';
   return `<td><div class="dispo-cell">
     ${blockTagBadges}
@@ -95,7 +96,7 @@ function renderDispoItemCard(item, assignmentId, index, allowDelete = true) {
   const lineLabel = getDispoItemLineLabel(item);
   const actions = allowDelete && assignmentId
     ? `<div class="dispo-item-actions">
-      <button class="button button-icon-only dispo-delete-button" type="button" data-action="remove-dispo-item" data-assignment-id="${escapeAttribute(assignmentId)}" data-item-index="${escapeAttribute(index)}" title="Eintrag löschen">✕</button>
+      <button class="button button-icon-only dispo-delete-button" type="button" data-action="remove-dispo-item" data-assignment-id="${escapeAttribute(assignmentId)}" data-item-index="${escapeAttribute(index)}" title="Eintrag löschen" aria-label="Eintrag löschen">${renderIconButtonContent('x', 'Eintrag löschen')}</button>
     </div>`
     : '';
   return `<article class="dispo-item-card ${themeClass}">

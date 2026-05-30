@@ -17,6 +17,7 @@ function render() {
       showLoginMessage('Admin-Zugriff wird geprüft …', false);
     }
     renderLoadingOverlay();
+    renderLucideIcons();
     return;
   }
 
@@ -24,6 +25,7 @@ function render() {
     closeReportEditModal();
     closeAdjustedMinutesModal();
     renderLoadingOverlay();
+    renderLucideIcons();
     return;
   }
 
@@ -48,6 +50,7 @@ function render() {
   renderHolidayImportProgress();
   renderSchoolVacationImportProgress();
   renderLoadingOverlay();
+  renderLucideIcons();
 }
 
 function renderSidebar() {
@@ -137,7 +140,7 @@ function renderReportStats() {
 
   elements.reportStatusButton.classList.toggle('is-missing', hasMissingReports);
   elements.reportStatusButton.classList.toggle('is-complete', !hasMissingReports);
-  elements.reportStatusIcon.textContent = hasMissingReports ? String(missingProfiles.length) : '✔';
+  elements.reportStatusIcon.innerHTML = hasMissingReports ? String(missingProfiles.length) : getIconMarkup('check', 'app-icon report-status-check-icon');
   elements.reportStatusText.textContent = hasMissingReports ? 'fehlende/unvollständige Rapporte' : 'Alle Wochenrapporte vollständig';
 }
 
@@ -184,7 +187,7 @@ function renderReportsTable() {
           <td>${renderAttachmentLinks(report.attachments)}</td>
           <td>
             <div class="table-row-actions">
-              <button class="button button-small button-danger" type="button" data-action="delete-report" data-report-id="${escapeAttribute(report.id)}" ${state.isSavingReport ? 'disabled' : ''}>Löschen</button>
+              <button class="button button-small button-danger button-icon-only" type="button" data-action="delete-report" data-report-id="${escapeAttribute(report.id)}" title="Rapport löschen" aria-label="Rapport löschen" ${state.isSavingReport ? 'disabled' : ''}>${renderIconButtonContent('trash-2', 'Rapport löschen')}</button>
             </div>
           </td>
         </tr>
@@ -192,6 +195,7 @@ function renderReportsTable() {
     })
     .join('');
   renderReportsPagination(pagination);
+  renderLucideIcons();
 }
 
 function renderSubmissionLists() {
@@ -228,7 +232,7 @@ function renderSubmissionLists() {
               data-profile-id="${escapeAttribute(entry.profile.id)}"
               title="Nur diese Person telefonisch delegieren"
               aria-label="Nur ${escapeAttribute(entry.profile.full_name || 'diese Person')} telefonisch delegieren"
-            >📞</button>
+            >${renderIconButtonContent('phone-forwarded', 'Telefonisch delegieren')}</button>
             ${escapeHtml(entry.profile.full_name)}
           </strong>
           <div class="subtle-text">${escapeHtml(entry.description)}</div>
@@ -1211,9 +1215,9 @@ function renderHolidayApprovalCell(request, fieldName, roleLabel) {
 function renderHolidayRejectCell(request) {
   const rejectButton = isHolidayRequestFullyApproved(request)
     ? ''
-    : `<button class="button button-small button-danger absence-icon-button" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Absenzgesuch ablehnen" aria-label="Absenzgesuch ablehnen" ${state.isSavingAbsence ? 'disabled' : ''}>✕</button>`;
+    : `<button class="button button-small button-danger absence-icon-button" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Absenzgesuch ablehnen" aria-label="Absenzgesuch ablehnen" ${state.isSavingAbsence ? 'disabled' : ''}>${renderIconButtonContent('x', 'Absenzgesuch ablehnen')}</button>`;
   const absenceInfoButton = isVacationRequest(request)
-    ? `<button class="button button-small button-secondary absence-icon-button" type="button" data-action="show-absence-info" data-request-id="${escapeAttribute(request.id)}" title="Rapportierte Stunden anzeigen" aria-label="Rapportierte Stunden anzeigen">ⓘ</button>`
+    ? `<button class="button button-small button-secondary absence-icon-button" type="button" data-action="show-absence-info" data-request-id="${escapeAttribute(request.id)}" title="Rapportierte Stunden anzeigen" aria-label="Rapportierte Stunden anzeigen">${renderIconButtonContent('info', 'Rapportierte Stunden anzeigen')}</button>`
     : '';
 
   return `
@@ -1235,15 +1239,15 @@ function renderHolidayConfirmationCell(request) {
       return `
         <div class="status-stack compact">
           <span class="subtle-text">PDF verfügbar nach PL- und GL-Bestätigung</span>
-          <button class="button button-small button-danger" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" ${state.isSavingAbsence ? 'disabled' : ''}>Gesuch ablehnen/löschen</button>
+          <button class="button button-small button-danger button-icon-only" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Gesuch ablehnen/löschen" aria-label="Gesuch ablehnen/löschen" ${state.isSavingAbsence ? 'disabled' : ''}>${renderIconButtonContent('trash-2', 'Gesuch ablehnen/löschen')}</button>
         </div>
       `;
     }
 
-    return `<button class="button button-small button-danger" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" ${state.isSavingAbsence ? 'disabled' : ''}>Gesuch ablehnen/löschen</button>`;
+    return `<button class="button button-small button-danger button-icon-only" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Gesuch ablehnen/löschen" aria-label="Gesuch ablehnen/löschen" ${state.isSavingAbsence ? 'disabled' : ''}>${renderIconButtonContent('trash-2', 'Gesuch ablehnen/löschen')}</button>`;
   }
 
-  return `<button class="button button-small button-secondary" type="button" data-action="download-absence-confirmation" data-request-id="${escapeAttribute(request.id)}">PDF herunterladen</button>`;
+  return `<button class="button button-small button-secondary button-icon-only" type="button" data-action="download-absence-confirmation" data-request-id="${escapeAttribute(request.id)}" title="PDF herunterladen" aria-label="PDF herunterladen">${renderIconButtonContent('file-down', 'PDF herunterladen')}</button>`;
 }
 
 function openReportsColumnFilter(type) {
@@ -1267,9 +1271,10 @@ function openReportsColumnFilter(type) {
   document.getElementById('confirmColumnFilter')?.addEventListener('click', applyColumnFilterFromPopover);
   document.getElementById('columnFilterSearchInput')?.addEventListener('input', handleColumnFilterSearchInput);
   document.getElementById('clearColumnFilterSelectionButton')?.addEventListener('click', clearColumnFilterSelection);
+  renderLucideIcons();
 }
 function buildMultiFilterMarkup(type, options, title){
-  return `<strong class="column-filter-title">${title}</strong><div class="column-filter-toolbar"><label class="column-filter-search-label"><input id="columnFilterSearchInput" type="search" placeholder="Kommission suchen" autocomplete="off" /></label><button id="clearColumnFilterSelectionButton" class="button button-secondary report-filter-icon-button" type="button" title="Alle abwählen" aria-label="Alle abwählen">✕</button></div><div class="column-filter-grid">${options.map((o)=>`<label class="column-filter-chip" data-filter-label="${escapeAttribute(String(o.label || '').toLowerCase())}"><input type="checkbox" value="${escapeAttribute(o.value)}" ${state.reportColumnFilter.type===type&&state.reportColumnFilter.values.includes(o.value)?'checked':''}/><span>${escapeHtml(o.label)}</span></label>`).join('')}</div><div class="column-filter-actions"><button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button></div>`;
+  return `<strong class="column-filter-title">${title}</strong><div class="column-filter-toolbar"><label class="column-filter-search-label"><input id="columnFilterSearchInput" type="search" placeholder="Kommission suchen" autocomplete="off" /></label><button id="clearColumnFilterSelectionButton" class="button button-secondary report-filter-icon-button" type="button" title="Alle abwählen" aria-label="Alle abwählen">${renderIconButtonContent('x', 'Alle abwählen')}</button></div><div class="column-filter-grid">${options.map((o)=>`<label class="column-filter-chip" data-filter-label="${escapeAttribute(String(o.label || '').toLowerCase())}"><input type="checkbox" value="${escapeAttribute(o.value)}" ${state.reportColumnFilter.type===type&&state.reportColumnFilter.values.includes(o.value)?'checked':''}/><span>${escapeHtml(o.label)}</span></label>`).join('')}</div><div class="column-filter-actions"><button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button></div>`;
 }
 function handleColumnFilterSearchInput(event) {
   const query = String(event?.target?.value || '').trim().toLowerCase();

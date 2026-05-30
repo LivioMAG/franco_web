@@ -53,3 +53,41 @@
   border: 1px solid rgba(215, 0, 21, 0.18);
   color: #7f111c;
 }
+
+.app-icon,
+.button svg,
+.nav-tab svg,
+.sidebar-logout svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex: 0 0 auto;
+  stroke: currentColor;
+}
+
+.button-icon-only {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.button-icon-only.button-small {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+
+.button-icon svg,
+.sidebar-logout svg,
+.nav-tab svg {
+  width: 24px;
+  height: 24px;
+}
+
+.settings-manage-button svg {
+  width: 18px;
+  height: 18px;
+}
