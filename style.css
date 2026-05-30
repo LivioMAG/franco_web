@@ -1380,6 +1380,14 @@ tbody tr:hover {
   vertical-align: top;
 }
 
+.project-row-static {
+  cursor: default;
+}
+
+.project-row-static:hover {
+  background: transparent;
+}
+
 .crm-row-clickable {
   cursor: pointer;
 }
