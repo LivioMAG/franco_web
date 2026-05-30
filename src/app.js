@@ -79,8 +79,12 @@ function cacheElements() {
   elements.openRejectedAbsencesModalButton = document.getElementById('openRejectedAbsencesModalButton');
   elements.confirmationsModal = document.getElementById('confirmationsModal');
   elements.rejectedAbsencesModal = document.getElementById('rejectedAbsencesModal');
+  elements.absenceInfoModal = document.getElementById('absenceInfoModal');
+  elements.absenceInfoModalSubtitle = document.getElementById('absenceInfoModalSubtitle');
+  elements.absenceInfoModalContent = document.getElementById('absenceInfoModalContent');
   elements.closeConfirmationsModalButton = document.getElementById('closeConfirmationsModalButton');
   elements.closeRejectedAbsencesModalButton = document.getElementById('closeRejectedAbsencesModalButton');
+  elements.closeAbsenceInfoModalButton = document.getElementById('closeAbsenceInfoModalButton');
   elements.bulkConfirmModal = document.getElementById('bulkConfirmModal');
   elements.closeBulkConfirmModalButton = document.getElementById('closeBulkConfirmModalButton');
   elements.bulkConfirmWeekdaySelect = document.getElementById('bulkConfirmWeekdaySelect');
@@ -261,6 +265,7 @@ function bindEvents() {
   if (elements.closeConfirmationsModalButton) elements.closeConfirmationsModalButton.addEventListener('click', closeConfirmationsModal);
   if (elements.openRejectedAbsencesModalButton) elements.openRejectedAbsencesModalButton.addEventListener('click', openRejectedAbsencesModal);
   if (elements.closeRejectedAbsencesModalButton) elements.closeRejectedAbsencesModalButton.addEventListener('click', closeRejectedAbsencesModal);
+  if (elements.closeAbsenceInfoModalButton) elements.closeAbsenceInfoModalButton.addEventListener('click', closeAbsenceInfoModal);
   if (elements.closeBulkConfirmModalButton) {
     elements.closeBulkConfirmModalButton.addEventListener('click', closeBulkConfirmModal);
   }
@@ -360,6 +365,13 @@ function bindEvents() {
     elements.rejectedAbsencesModal.addEventListener('click', (event) => {
       if (event.target?.dataset?.closeRejectedAbsencesModal === 'true') {
         closeRejectedAbsencesModal();
+      }
+    });
+  }
+  if (elements.absenceInfoModal) {
+    elements.absenceInfoModal.addEventListener('click', (event) => {
+      if (event.target?.dataset?.closeAbsenceInfoModal === 'true') {
+        closeAbsenceInfoModal();
       }
     });
   }

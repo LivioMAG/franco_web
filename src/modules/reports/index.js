@@ -42,6 +42,7 @@ function render() {
   renderConfirmationsTable();
   renderRejectedAbsencesModalState();
   renderRejectedAbsencesTable();
+  renderAbsenceInfoModalState();
   renderProjectsTable();
   renderDispoPlanner();
   renderSettingsUsersTable();
@@ -1213,8 +1214,8 @@ function renderControllCell(report) {
 function renderHolidayApprovalCell(request, fieldName, roleLabel) {
   const approvalValue = String(request?.[fieldName] || '').trim();
   const isApproved = Boolean(approvalValue);
-  const titleText = isApproved ? `${roleLabel} bestätigt von ${approvalValue}` : `Bestätigung ${roleLabel}`;
-  const ariaLabel = isApproved ? titleText : `Bestätigung ${roleLabel}`;
+  const titleText = isApproved ? `${roleLabel} bestätigt von ${approvalValue}` : roleLabel;
+  const ariaLabel = isApproved ? titleText : roleLabel;
 
   return `
     <label class="control-checkbox-button ${isApproved ? 'is-controlled' : ''}" data-action="confirm-absence-${escapeAttribute(roleLabel.toLowerCase())}" data-request-id="${escapeAttribute(request.id)}" title="${escapeAttribute(titleText)}">
@@ -1224,10 +1225,16 @@ function renderHolidayApprovalCell(request, fieldName, roleLabel) {
 }
 
 function renderHolidayRejectCell(request) {
-  if (isHolidayRequestFullyApproved(request)) {
-    return '<span class="subtle-text">—</span>';
-  }
-  return `<button class="button button-small button-danger" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" ${state.isSavingAbsence ? 'disabled' : ''}>Ablehnen</button>`;
+  const rejectButton = isHolidayRequestFullyApproved(request)
+    ? ''
+    : `<button class="button button-small button-danger absence-icon-button" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Absenzgesuch ablehnen" aria-label="Absenzgesuch ablehnen" ${state.isSavingAbsence ? 'disabled' : ''}>✕</button>`;
+
+  return `
+    <div class="absence-action-buttons">
+      <button class="button button-small button-secondary absence-icon-button" type="button" data-action="show-absence-info" data-request-id="${escapeAttribute(request.id)}" title="Rapportierte Stunden anzeigen" aria-label="Rapportierte Stunden anzeigen">ⓘ</button>
+      ${rejectButton || '<span class="subtle-text">—</span>'}
+    </div>
+  `;
 }
 
 function renderHolidayConfirmationCell(request) {

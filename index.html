@@ -290,9 +290,9 @@
                       <th>Bis</th>
                       <th>Bemerkung</th>
                       <th>Anhänge</th>
-                      <th>Bestätigung PL</th>
-                      <th>Bestätigung GL</th>
-                      <th>Ablehnen</th>
+                      <th>PL</th>
+                      <th>GL</th>
+                      <th>Aktionen</th>
                     </tr>
                   </thead>
                   <tbody id="absencesTableBody"></tbody>
@@ -867,6 +867,21 @@
               <tbody id="rejectedAbsencesTableBody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div id="absenceInfoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="absenceInfoModalTitle">
+        <div class="modal-backdrop" data-close-absence-info-modal="true"></div>
+        <div class="modal-card panel modal-card-compact">
+          <div class="section-heading compact">
+            <div>
+              <h3 id="absenceInfoModalTitle">Rapportierte Absenzstunden</h3>
+              <p id="absenceInfoModalSubtitle">Jahresübersicht nach Mitarbeiter und Absenztyp.</p>
+            </div>
+            <button id="closeAbsenceInfoModalButton" class="button button-ghost" type="button">Schliessen</button>
+          </div>
+
+          <div id="absenceInfoModalContent" class="absence-info-content" aria-live="polite"></div>
         </div>
       </div>
 

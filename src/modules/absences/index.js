@@ -227,6 +227,11 @@ function handleAbsencesTableClick(event) {
     return;
   }
 
+  if (trigger.dataset.action === 'show-absence-info') {
+    openAbsenceInfoModal(requestId);
+    return;
+  }
+
   if (trigger.dataset.action === 'reject-absence-request') {
     handleRejectHolidayRequest(requestId);
     return;
@@ -256,6 +261,170 @@ function handleConfirmationsTableClick(event) {
   if (trigger.dataset.action === 'delete-history-entry') {
     handleDeleteHistoryEntry(historyEntryId);
   }
+}
+
+function renderAbsenceInfoModalState() {
+  if (!elements.absenceInfoModal || !elements.absenceInfoModalContent) return;
+  elements.absenceInfoModal.classList.toggle('hidden', !state.isAbsenceInfoModalOpen);
+
+  const summary = state.absenceInfoSummary;
+  if (elements.absenceInfoModalSubtitle) {
+    elements.absenceInfoModalSubtitle.textContent = summary
+      ? `${summary.employeeName} · ${summary.typeLabel} · ${summary.year}`
+      : 'Jahresübersicht nach Mitarbeiter und Absenztyp.';
+  }
+
+  if (!state.isAbsenceInfoModalOpen) {
+    return;
+  }
+
+  if (state.isAbsenceInfoLoading) {
+    elements.absenceInfoModalContent.innerHTML = '<p class="subtle-text">Rapporte werden geladen …</p>';
+    return;
+  }
+
+  if (state.absenceInfoError) {
+    elements.absenceInfoModalContent.innerHTML = `<p class="alert">${escapeHtml(state.absenceInfoError)}</p>`;
+    return;
+  }
+
+  if (!summary) {
+    elements.absenceInfoModalContent.innerHTML = '<p class="subtle-text">Keine Auswertung ausgewählt.</p>';
+    return;
+  }
+
+  elements.absenceInfoModalContent.innerHTML = `
+    <div class="absence-info-grid">
+      <div class="absence-info-card">
+        <span>Bereits rapportiert</span>
+        <strong>${escapeHtml(formatMinutes(summary.pastMinutes))}</strong>
+        <small>01.01.${escapeHtml(String(summary.year))} bis ${escapeHtml(formatDate(summary.today))}</small>
+      </div>
+      <div class="absence-info-card">
+        <span>Zukünftig rapportiert</span>
+        <strong>${escapeHtml(formatMinutes(summary.futureMinutes))}</strong>
+        <small>${escapeHtml(formatDate(summary.futureStartDate))} bis 31.12.${escapeHtml(String(summary.year))}</small>
+      </div>
+      <div class="absence-info-card total">
+        <span>Total im Jahr</span>
+        <strong>${escapeHtml(formatMinutes(summary.totalMinutes))}</strong>
+        <small>${escapeHtml(String(summary.reportCount))} Rapport(e) gefunden</small>
+      </div>
+    </div>
+    <p class="subtle-text">Ausgewertet werden Wochenrapporte des Mitarbeiters mit dem Absenztyp „${escapeHtml(summary.typeLabel)}“ im aktuellen Kalenderjahr.</p>
+  `;
+}
+
+function closeAbsenceInfoModal() {
+  state.isAbsenceInfoModalOpen = false;
+  state.absenceInfoRequestId = null;
+  state.isAbsenceInfoLoading = false;
+  state.absenceInfoError = '';
+  renderAbsenceInfoModalState();
+}
+
+async function openAbsenceInfoModal(requestId) {
+  const request = state.holidayRequests.find((item) => String(item.id) === String(requestId));
+  if (!request) {
+    alert('Das ausgewählte Absenzgesuch wurde nicht gefunden.');
+    return;
+  }
+
+  state.isAbsenceInfoModalOpen = true;
+  state.absenceInfoRequestId = requestId;
+  state.isAbsenceInfoLoading = true;
+  state.absenceInfoError = '';
+  state.absenceInfoSummary = buildEmptyAbsenceInfoSummary(request);
+  renderAbsenceInfoModalState();
+
+  try {
+    const reports = await fetchAbsenceInfoReports(request);
+    if (String(state.absenceInfoRequestId) !== String(requestId)) {
+      return;
+    }
+    state.absenceInfoSummary = buildAbsenceInfoSummary(request, reports);
+  } catch (error) {
+    console.error(error);
+    state.absenceInfoError = `Rapportierte Stunden konnten nicht geladen werden: ${error.message}`;
+  } finally {
+    if (String(state.absenceInfoRequestId) === String(requestId)) {
+      state.isAbsenceInfoLoading = false;
+      renderAbsenceInfoModalState();
+    }
+  }
+}
+
+function buildEmptyAbsenceInfoSummary(request) {
+  const today = getTodayIsoDate();
+  const year = Number(today.slice(0, 4));
+  const profile = getProfileById(request.profile_id);
+  return {
+    employeeName: profile?.full_name || profile?.email || 'Unbekannt',
+    typeCode: getAbsenceTypeCode(request),
+    typeLabel: getAbsenceTypeLabel(request, request.request_type),
+    year,
+    today,
+    futureStartDate: getNextDateIsoDate(today),
+    pastMinutes: 0,
+    futureMinutes: 0,
+    totalMinutes: 0,
+    reportCount: 0,
+  };
+}
+
+function buildAbsenceInfoSummary(request, reports) {
+  const summary = buildEmptyAbsenceInfoSummary(request);
+  reports.forEach((report) => {
+    const minutes = getBaseAdjustedWorkMinutes(report) || Number(report.total_work_minutes || 0) || 0;
+    if (String(report.work_date || '') <= summary.today) {
+      summary.pastMinutes += minutes;
+    } else {
+      summary.futureMinutes += minutes;
+    }
+  });
+  summary.totalMinutes = summary.pastMinutes + summary.futureMinutes;
+  summary.reportCount = reports.length;
+  return summary;
+}
+
+async function fetchAbsenceInfoReports(request) {
+  const summary = buildEmptyAbsenceInfoSummary(request);
+  if (!summary.typeCode) {
+    return [];
+  }
+
+  const yearStart = `${summary.year}-01-01`;
+  const yearEnd = `${summary.year}-12-31`;
+
+  if (state.isDemoMode) {
+    return demoWeeklyReports.filter((report) =>
+      String(report.profile_id) === String(request.profile_id)
+      && Number(getAbsenceTypeCode(report)) === Number(summary.typeCode)
+      && String(report.work_date || '') >= yearStart
+      && String(report.work_date || '') <= yearEnd
+    );
+  }
+
+  const { data, error } = await state.supabase
+    .from('weekly_reports')
+    .select('id, profile_id, work_date, total_work_minutes, total_adjusted_work_minutes, abz_typ')
+    .eq('profile_id', request.profile_id)
+    .eq('abz_typ', summary.typeCode)
+    .gte('work_date', yearStart)
+    .lte('work_date', yearEnd)
+    .order('work_date', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+function getNextDateIsoDate(dateString) {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
 }
 
 
