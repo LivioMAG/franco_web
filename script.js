@@ -949,7 +949,6 @@ function cacheElements() {
     absences: document.getElementById('absencesPage'),
     saldo: document.getElementById('saldoPage'),
     projects: document.getElementById('projectsPage'),
-    projectDetail: document.getElementById('projectDetailPage'),
     dispo: document.getElementById('dispoPage'),
     crm: document.getElementById('crmPage'),
     settings: document.getElementById('settingsPage'),
@@ -960,9 +959,6 @@ function cacheElements() {
   elements.projectIdInput = document.getElementById('projectIdInput');
   elements.projectCommissionInput = document.getElementById('projectCommissionInput');
   elements.projectNameInput = document.getElementById('projectNameInput');
-  elements.projectLeadSelect = document.getElementById('projectLeadSelect');
-  elements.constructionLeadSelect = document.getElementById('constructionLeadSelect');
-  elements.projectExpensesAllowedInput = document.getElementById('projectExpensesAllowedInput');
   elements.projectSearchInput = document.getElementById('projectSearchInput');
   elements.projectsTableBody = document.getElementById('projectsTableBody');
   elements.projectsAlert = document.getElementById('projectsAlert');
@@ -970,8 +966,6 @@ function cacheElements() {
   elements.resetProjectFormButton = document.getElementById('resetProjectFormButton');
   elements.projectModal = document.getElementById('projectModal');
   elements.closeProjectModalButton = document.getElementById('closeProjectModalButton');
-  elements.backToProjectsButton = document.getElementById('backToProjectsButton');
-  elements.projectDetailTitle = document.getElementById('projectDetailTitle');
   elements.dispoAlert = document.getElementById('dispoAlert');
   elements.dispoPreviousWeekButton = document.getElementById('dispoPreviousWeekButton');
   elements.dispoNextWeekButton = document.getElementById('dispoNextWeekButton');
@@ -1180,7 +1174,6 @@ function bindEvents() {
       closeProjectModal();
     }
   });
-  elements.backToProjectsButton.addEventListener('click', () => setCurrentPage('projects'));
   elements.dispoTableBody.addEventListener('click', handleDispoTableClick);
   elements.dispoTableHead.addEventListener('click', handleDispoTableClick);
   elements.dispoExportPdfButton.addEventListener('click', exportDispoPdf);
@@ -1999,7 +1992,6 @@ function render() {
   renderRejectedAbsencesModalState();
   renderRejectedAbsencesTable();
   renderSaldoTable();
-  renderProjectForm();
   renderProjectsTable();
   renderDispoPlanner();
   renderSettingsUsersTable();
@@ -2078,7 +2070,6 @@ function renderPages() {
     absences: 'Ferien & Absenzen',
     saldo: 'Saldo',
     projects: 'Projekte / Aufträge',
-    projectDetail: 'Projekt-Detail',
     dispo: 'Dispo / Wochenplanung',
     crm: 'CRM',
     settings: 'Einstellungen',
@@ -5082,34 +5073,17 @@ function renderSettingsSchoolVacationsTable() {
   `).join('');
 }
 
-function renderProjectForm() {
-  if (!elements.projectLeadSelect) return;
-  const options = [`<option value="">Bitte wählen</option>`]
-    .concat(
-      getActiveProfiles().map((profile) => `<option value="${escapeAttribute(profile.id)}">${escapeHtml(profile.full_name || profile.email || 'Unbekannt')}</option>`)
-    )
-    .join('');
-  elements.projectLeadSelect.innerHTML = options;
-  elements.constructionLeadSelect.innerHTML = options;
-}
-
 function renderProjectsTable() {
   if (!elements.projectsTableBody) return;
   const rows = getFilteredProjects();
   if (!rows.length) {
-    elements.projectsTableBody.innerHTML = '<tr><td colspan="6" class="empty-state">Keine Projekte vorhanden.</td></tr>';
+    elements.projectsTableBody.innerHTML = '<tr><td colspan="3" class="empty-state">Keine Projekte vorhanden.</td></tr>';
     return;
   }
   elements.projectsTableBody.innerHTML = rows.map((project) => {
-    const assignments = getProjectRoleAssignments(project.id);
-    const projectLead = getProfileById(assignments.projectLeadId)?.full_name || '—';
-    const constructionLead = getProfileById(assignments.constructionLeadId)?.full_name || '—';
-    return `<tr class="project-row-clickable" data-action="open-project-detail" data-project-id="${escapeAttribute(project.id)}">
+    return `<tr>
       <td>${escapeHtml(project.commission_number || '')}</td>
       <td>${escapeHtml(project.name || '')}</td>
-      <td>${escapeHtml(projectLead)}</td>
-      <td>${escapeHtml(constructionLead)}</td>
-      <td><span class="pill ${project.allow_expenses === false ? 'warning' : 'success'}">${project.allow_expenses === false ? 'Nein' : 'Ja'}</span></td>
       <td>
         <div class="table-row-actions">
           <button class="button button-small button-secondary" type="button" data-action="edit-project" data-project-id="${escapeAttribute(project.id)}">Bearbeiten</button>
@@ -5650,14 +5624,6 @@ function getFilteredProjects() {
   return state.projects.filter((project) => String(project.commission_number || '').toLowerCase().includes(query) || String(project.name || '').toLowerCase().includes(query));
 }
 
-function getProjectRoleAssignments(projectId) {
-  const project = state.projects.find((item) => item.id === projectId);
-  return {
-    projectLeadId: project?.project_lead_profile_id || '',
-    constructionLeadId: project?.construction_lead_profile_id || '',
-  };
-}
-
 function handleProjectSearchInput(event) {
   state.projectSearchQuery = event.target.value || '';
   renderProjectsTable();
@@ -5667,24 +5633,14 @@ async function handleProjectSubmit(event) {
   event.preventDefault();
   const commissionNumber = elements.projectCommissionInput.value.trim();
   const name = elements.projectNameInput.value.trim();
-  const projectLeadId = elements.projectLeadSelect.value;
-  const constructionLeadId = elements.constructionLeadSelect.value;
-  const allowExpenses = elements.projectExpensesAllowedInput?.checked !== false;
-  if (!commissionNumber || !name || !projectLeadId || !constructionLeadId) {
-    showInlineAlert(elements.projectsAlert, 'Kommissionsnummer, Projektname, Projektleiter und Bauleiter sind Pflicht.', true);
-    return;
-  }
-  if (projectLeadId === constructionLeadId) {
-    showInlineAlert(elements.projectsAlert, 'Projektleiter und Bauleiter müssen unterschiedliche Personen sein.', true);
+  if (!commissionNumber || !name) {
+    showInlineAlert(elements.projectsAlert, 'Kommissionsnummer und Projektname sind Pflicht.', true);
     return;
   }
   await withLongTask('Projekt wird gespeichert …', async () => {
     const payload = {
       commission_number: commissionNumber,
       name,
-      project_lead_profile_id: projectLeadId,
-      construction_lead_profile_id: constructionLeadId,
-      allow_expenses: allowExpenses,
     };
     let projectId = state.editingProjectId;
     if (projectId) {
@@ -5707,37 +5663,20 @@ function resetProjectForm() {
   elements.projectIdInput.value = '';
   elements.projectCommissionInput.value = '';
   elements.projectNameInput.value = '';
-  elements.projectLeadSelect.value = '';
-  elements.constructionLeadSelect.value = '';
-  if (elements.projectExpensesAllowedInput) {
-    elements.projectExpensesAllowedInput.checked = true;
-  }
 }
 
 async function handleProjectsTableClick(event) {
   const button = event.target.closest('button[data-action]');
-  if (!button) {
-    const row = event.target.closest('tr[data-action="open-project-detail"]');
-    if (row && !event.target.closest('a, button, input, select, textarea')) {
-      openProjectDetail(row.dataset.projectId);
-    }
-    return;
-  }
+  if (!button) return;
   const action = button.dataset.action;
   const projectId = button.dataset.projectId;
   if (action === 'edit-project') {
     const project = state.projects.find((item) => String(item.id) === String(projectId));
     if (!project) return;
-    const roles = getProjectRoleAssignments(project.id);
     state.editingProjectId = project.id;
     elements.projectIdInput.value = project.id;
     elements.projectCommissionInput.value = project.commission_number || '';
     elements.projectNameInput.value = project.name || '';
-    elements.projectLeadSelect.value = roles.projectLeadId;
-    elements.constructionLeadSelect.value = roles.constructionLeadId;
-    if (elements.projectExpensesAllowedInput) {
-      elements.projectExpensesAllowedInput.checked = project.allow_expenses !== false;
-    }
     openProjectModal();
     return;
   }
@@ -5761,16 +5700,6 @@ function openProjectModal() {
 function closeProjectModal() {
   if (!elements.projectModal) return;
   elements.projectModal.classList.add('hidden');
-}
-
-function openProjectDetail(projectId) {
-  const project = state.projects.find((item) => String(item.id) === String(projectId));
-  if (!project) return;
-  const detailUrl = new URL('./project-detail.html', window.location.href);
-  detailUrl.searchParams.set('projectId', String(project.id));
-  detailUrl.searchParams.set('commission', project.commission_number || '');
-  detailUrl.searchParams.set('name', project.name || '');
-  window.location.href = detailUrl.toString();
 }
 
 function openCrmContactDetailPage(contact) {
