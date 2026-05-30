@@ -540,52 +540,117 @@
   line-height: 1;
 }
 
+.absence-info-heading {
+  align-items: flex-start;
+}
+
+.absence-info-heading .modal-close-button {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
 .absence-info-content {
   display: grid;
   gap: 16px;
 }
 
-.absence-info-grid {
+.absence-invoice {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.absence-info-card {
-  display: grid;
-  gap: 6px;
-  padding: 14px;
+  gap: 18px;
+  padding: 18px;
   border: 1px solid rgba(17, 17, 17, 0.08);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 44px rgba(17, 17, 17, 0.08);
 }
 
-.absence-info-card span,
-.absence-info-card small {
+.absence-invoice-person {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.absence-invoice-person strong {
+  font-size: 1.15rem;
+}
+
+.absence-invoice-person span {
   color: var(--muted);
 }
 
-.absence-info-card strong {
-  font-size: 1.4rem;
+.absence-invoice-lines {
+  display: grid;
+  gap: 0;
 }
 
-.absence-info-card.total {
-  border-color: rgba(215, 0, 21, 0.18);
-  background: rgba(215, 0, 21, 0.07);
+.absence-invoice-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
 }
 
-.absence-info-card.total.positive {
-  border-color: rgba(22, 163, 74, 0.28);
-  background: rgba(22, 163, 74, 0.09);
+.absence-invoice-line > div {
+  display: grid;
+  gap: 3px;
 }
 
-.absence-info-card.total.negative {
-  border-color: rgba(215, 0, 21, 0.28);
-  background: rgba(215, 0, 21, 0.09);
+.absence-invoice-line span {
+  font-weight: 700;
+}
+
+.absence-invoice-line small {
+  color: var(--muted);
+}
+
+.absence-invoice-line strong {
+  white-space: nowrap;
+  font-size: 1.05rem;
+  text-align: right;
+}
+
+.absence-invoice-line.allowance strong {
+  color: var(--text);
+}
+
+.absence-invoice-line.deduction strong {
+  color: var(--muted);
+}
+
+.absence-invoice-line.result {
+  margin-top: 4px;
+  padding: 16px 0 0;
+  border-bottom: 0;
+  border-top: 2px solid rgba(17, 17, 17, 0.16);
+}
+
+.absence-invoice-line.result strong {
+  font-size: 1.45rem;
+}
+
+.absence-invoice-line.result.positive strong {
+  color: #15803d;
+}
+
+.absence-invoice-line.result.negative strong {
+  color: #b91c1c;
 }
 
 @media (max-width: 720px) {
-  .absence-info-grid {
+  .absence-invoice-line {
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .absence-invoice-line strong {
+    text-align: left;
   }
 }
