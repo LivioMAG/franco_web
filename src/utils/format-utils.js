@@ -147,6 +147,11 @@ function getWeekdayLabel(dateString) {
   return WEEKDAY_LABELS[getWeekdayIndex(dateString)] || '';
 }
 
+function getShortWeekdayLabel(dateString) {
+  const labels = ['MO', 'DI', 'MI', 'DO', 'FR', 'SA', 'SO'];
+  return labels[getWeekdayIndex(dateString)] || '';
+}
+
 function formatHours(totalMinutes) {
   const numericMinutes = Number(totalMinutes || 0);
   if (!numericMinutes) {
@@ -164,7 +169,41 @@ function formatMinutes(minutes) {
 }
 
 function formatDate(dateString) {
-  return new Date(`${dateString}T00:00:00Z`).toLocaleDateString('de-CH');
+  if (!dateString) {
+    return '–';
+  }
+
+  const date = new Date(`${dateString}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) {
+    return String(dateString);
+  }
+
+  return date.toLocaleDateString('de-CH');
+}
+
+function formatDateWithWeekday(dateString) {
+  const weekdayLabel = getShortWeekdayLabel(dateString);
+  const dateLabel = formatDate(dateString);
+  return weekdayLabel ? `${weekdayLabel} ${dateLabel}` : dateLabel;
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return '–';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat('de-CH', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
 }
 
 function formatTimeWithoutSeconds(timeValue) {

@@ -191,7 +191,7 @@ function renderReportsTable() {
         <tr class="report-row report-row-clickable" data-action="open-report-edit" data-report-id="${escapeAttribute(report.id)}">
           <td>${escapeHtml(profile?.full_name ?? 'Unbekannt')}</td>
           <td>${renderControllCell(report)}</td>
-          <td>${formatDate(report.work_date)}</td>
+          <td>${formatDateWithWeekday(report.work_date)}</td>
           <td>${escapeHtml(report.commission_number || '–')}</td>
           <td>${escapeHtml(report.project_name || '–')}</td>
           <td>${formatMinutes(report.total_work_minutes)}</td>
@@ -385,24 +385,6 @@ function buildHistoryApprovedByLabel(entry) {
   return contextValue;
 }
 
-function formatDateTime(value) {
-  if (!value) {
-    return '–';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  return new Intl.DateTimeFormat('de-CH', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
 
 function getReportsPaginationMeta(reports = getSortedFilteredReports()) {
   const totalItems = reports.length;
