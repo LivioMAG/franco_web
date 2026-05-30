@@ -30,13 +30,13 @@ function renderAbsenceFilters() {
 
 function renderAbsenceTable() {
   if (!state.holidayRequests.length) {
-    elements.absencesTableBody.innerHTML = `<tr><td colspan="9">Keine Ferien- oder Absenzanträge gefunden.</td></tr>`;
+    elements.absencesTableBody.innerHTML = `<tr><td colspan="10">Keine Ferien- oder Absenzanträge gefunden.</td></tr>`;
     return;
   }
 
   const sorted = getFilteredHolidayRequests();
   if (!sorted.length) {
-    elements.absencesTableBody.innerHTML = `<tr><td colspan="9">Keine Ferien- oder Absenzanträge gefunden.</td></tr>`;
+    elements.absencesTableBody.innerHTML = `<tr><td colspan="10">Keine Ferien- oder Absenzanträge gefunden.</td></tr>`;
     return;
   }
 
@@ -47,6 +47,7 @@ function renderAbsenceTable() {
         <tr>
           <td>${escapeHtml(profile?.full_name ?? 'Unbekannt')}</td>
           <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
+          <td>${escapeHtml(formatDateTime(request.created_at))}</td>
           <td>${formatDate(request.start_date)}</td>
           <td>${formatDate(request.end_date)}</td>
           <td>${escapeHtml(request.notes || '–')}</td>
@@ -74,7 +75,7 @@ function renderConfirmationsTable() {
   const approvedRequests = getHolidayRequestsByApprovalStatus(2);
 
   if (!approvedRequests.length) {
-    elements.confirmationsTableBody.innerHTML = '<tr><td colspan="4">Keine bestätigten Absenzen vorhanden.</td></tr>';
+    elements.confirmationsTableBody.innerHTML = '<tr><td colspan="5">Keine bestätigten Absenzen vorhanden.</td></tr>';
     return;
   }
 
@@ -86,6 +87,7 @@ function renderConfirmationsTable() {
         <tr>
           <td>${escapeHtml(personLabel)}</td>
           <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
+          <td>${escapeHtml(formatDateTime(request.created_at))}</td>
           <td>${escapeHtml(formatDate(request.start_date))} bis ${escapeHtml(formatDate(request.end_date))}</td>
           <td>${escapeHtml(buildApprovalByLabel(request))}</td>
         </tr>
@@ -103,7 +105,7 @@ function renderRejectedAbsencesTable() {
   if (!elements.rejectedAbsencesTableBody) return;
   const rejectedRequests = getHolidayRequestsByApprovalStatus(0);
   if (!rejectedRequests.length) {
-    elements.rejectedAbsencesTableBody.innerHTML = '<tr><td colspan="4">Keine abgelehnten Absenzen vorhanden.</td></tr>';
+    elements.rejectedAbsencesTableBody.innerHTML = '<tr><td colspan="5">Keine abgelehnten Absenzen vorhanden.</td></tr>';
     return;
   }
   elements.rejectedAbsencesTableBody.innerHTML = rejectedRequests
@@ -114,6 +116,7 @@ function renderRejectedAbsencesTable() {
         <tr>
           <td>${escapeHtml(personLabel)}</td>
           <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
+          <td>${escapeHtml(formatDateTime(request.created_at))}</td>
           <td>${escapeHtml(formatDate(request.start_date))}</td>
           <td>${escapeHtml(formatDate(request.end_date))}</td>
         </tr>

@@ -693,6 +693,7 @@ const demoHolidayRequests = [
     controll_pl: '',
     controll_gl: '',
     attachments: [],
+    created_at: new Date().toISOString(),
   },
   {
     id: crypto.randomUUID(),
@@ -705,6 +706,7 @@ const demoHolidayRequests = [
     controll_pl: '',
     controll_gl: '',
     attachments: [],
+    created_at: new Date().toISOString(),
   },
 ];
 
