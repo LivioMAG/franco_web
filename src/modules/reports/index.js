@@ -109,18 +109,6 @@ async function withLongTask(reason, task) {
 }
 
 function renderPages() {
-  const pageTitles = {
-    reports: 'Wochenrapporte',
-    absences: 'Ferien & Absenzen',
-    projects: 'Projekte / Aufträge',
-    dispo: 'Dispo / Wochenplanung',
-    settings: 'Einstellungen',
-    settingsSchoolVacations: 'Ferienzeit verwalten',
-    settingsHolidays: 'Feiertage verwalten',
-  };
-
-  elements.pageTitle.textContent = pageTitles[state.currentPage];
-
   for (const [key, page] of Object.entries(elements.pages)) {
     if (!page) continue;
     page.classList.toggle('hidden', key !== state.currentPage);

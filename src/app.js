@@ -37,9 +37,6 @@ function cacheElements() {
   elements.userName = document.getElementById('userName');
   elements.userRole = document.getElementById('userRole');
   elements.userBadge = document.getElementById('userBadge');
-  elements.connectionBadge = document.getElementById('connectionBadge');
-  elements.dataTimestamp = document.getElementById('dataTimestamp');
-  elements.pageTitle = document.getElementById('pageTitle');
   elements.weekPicker = document.getElementById('weekPicker');
   elements.weekLabel = document.getElementById('weekLabel');
   elements.weekDateRange = document.getElementById('weekDateRange');
@@ -50,7 +47,6 @@ function cacheElements() {
   elements.reportStatusButton = document.getElementById('reportStatusButton');
   elements.reportStatusIcon = document.getElementById('reportStatusIcon');
   elements.reportStatusText = document.getElementById('reportStatusText');
-  elements.connectionRefreshButton = document.getElementById('connectionRefreshButton');
   elements.logoutButton = document.getElementById('logoutButton');
   elements.reportsTableBody = document.getElementById('reportsTableBody');
   elements.absencesTableBody = document.getElementById('absencesTableBody');
@@ -222,7 +218,6 @@ function bindEvents() {
   elements.loginForm.addEventListener('submit', handleLogin);
   elements.logoutButton.addEventListener('click', handleLogout);
   elements.accessDeniedLogoutButton.addEventListener('click', handleLogout);
-  elements.connectionRefreshButton.addEventListener('click', refreshData);
   elements.weekPicker.addEventListener('change', async (event) => {
     state.selectedWeek = event.target.value;
     await loadData();

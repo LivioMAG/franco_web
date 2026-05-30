@@ -156,7 +156,7 @@ function resetAppState() {
   clearLoadRecoveryTimer();
   closeReportEditModal();
   closeAdjustedMinutesModal();
-  elements.dataTimestamp.textContent = 'Noch keine Daten geladen';
+  state.dataTimestampText = 'Noch keine Daten geladen';
 }
 
 async function loadData() {
@@ -207,7 +207,7 @@ async function loadData() {
       state.holidayRequests = [];
       state.platformHolidays = [];
       state.schoolVacations = [];
-      elements.dataTimestamp.textContent = 'Kein Zugriff – is_admin ist für dieses Profil nicht aktiviert';
+      state.dataTimestampText = 'Kein Zugriff – is_admin ist für dieses Profil nicht aktiviert';
       finishDataLoad(requestId);
       render();
       if (state.pendingDataReload) {
@@ -302,7 +302,7 @@ async function loadData() {
     state.roleAssignments = [];
     syncEmployeeSelection();
     syncAbsenceSelection();
-    elements.dataTimestamp.textContent = `Letzte Aktualisierung: ${new Date().toLocaleString('de-CH')}`;
+    state.dataTimestampText = `Letzte Aktualisierung: ${new Date().toLocaleString('de-CH')}`;
     finishDataLoad(requestId);
     render();
     if (state.pendingDataReload) {
@@ -317,7 +317,7 @@ async function loadData() {
     }
     console.error(error);
     const hint = getAccessConfigurationHint(error);
-    elements.dataTimestamp.textContent = hint || 'Daten konnten nicht geladen werden';
+    state.dataTimestampText = hint || 'Daten konnten nicht geladen werden';
     render();
     alert(`Daten konnten nicht geladen werden: ${error.message}${hint ? `\n\nHinweis: ${hint}` : ''}`);
     if (state.pendingDataReload) {
@@ -366,7 +366,7 @@ async function loadDemoData() {
     state.requestHistory = [];
     state.platformHolidays = [];
     state.schoolVacations = [];
-    elements.dataTimestamp.textContent = 'Kein Zugriff – Demo-Profil hat is_admin = false';
+    state.dataTimestampText = 'Kein Zugriff – Demo-Profil hat is_admin = false';
     return;
   }
 
@@ -396,5 +396,5 @@ async function loadDemoData() {
   state.schoolVacations = [];
   syncEmployeeSelection();
   syncAbsenceSelection();
-  elements.dataTimestamp.textContent = `Demo-Daten geladen: ${new Date().toLocaleString('de-CH')}`;
+  state.dataTimestampText = `Demo-Daten geladen: ${new Date().toLocaleString('de-CH')}`;
 }
