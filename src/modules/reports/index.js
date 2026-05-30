@@ -147,7 +147,10 @@ function renderReportStats() {
 function renderEmployeeFilters() {
   if (elements.showControlledReportsInput) elements.showControlledReportsInput.checked = state.showControlledReports;
   if (elements.reportsSortSelect) elements.reportsSortSelect.value = state.reportsSortMode;
-  if (elements.showControlledReportsToggle) elements.showControlledReportsToggle.classList.toggle('is-active', state.showControlledReports);
+  if (elements.showControlledReportsToggle) {
+    elements.showControlledReportsToggle.classList.toggle('is-active', state.showControlledReports);
+    elements.showControlledReportsToggle.setAttribute('aria-pressed', state.showControlledReports ? 'true' : 'false');
+  }
 }
 
 function renderReportsTable() {
@@ -253,9 +256,12 @@ function renderSubmissionLists() {
 }
 
 
-function handleShowControlledReportsToggle() {
-  state.showControlledReports = Boolean(elements.showControlledReportsInput?.checked);
+function handleShowControlledReportsToggle(event) {
+  state.showControlledReports = event?.target === elements.showControlledReportsInput
+    ? Boolean(elements.showControlledReportsInput?.checked)
+    : !state.showControlledReports;
   state.reportsPage = 1;
+  renderEmployeeFilters();
   renderReportsTable();
 }
 
