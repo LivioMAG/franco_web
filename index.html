@@ -10,11 +10,40 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/pages/login.css" />
+    <link rel="stylesheet" href="./styles/components.css" />
+    <link rel="stylesheet" href="./styles/layout.css" />
+    <link rel="stylesheet" href="./styles/pages/settings.css" />
+    <link rel="stylesheet" href="./styles/pages/reports.css" />
+    <link rel="stylesheet" href="./styles/pages/projects.css" />
+    <link rel="stylesheet" href="./styles/pages/dispo.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
-    <script defer src="./script.js"></script>
+    <script defer src="./src/constants.js"></script>
+    <script defer src="./src/state.js"></script>
+    <script defer src="./src/services/supabase-client.js"></script>
+    <script defer src="./src/services/auth-service.js"></script>
+    <script defer src="./src/services/reports-service.js"></script>
+    <script defer src="./src/services/absences-service.js"></script>
+    <script defer src="./src/services/projects-service.js"></script>
+    <script defer src="./src/services/dispo-service.js"></script>
+    <script defer src="./src/modules/login/index.js"></script>
+    <script defer src="./src/modules/reports/index.js"></script>
+    <script defer src="./src/modules/absences/index.js"></script>
+    <script defer src="./src/modules/settings/index.js"></script>
+    <script defer src="./src/modules/projects/index.js"></script>
+    <script defer src="./src/modules/dispo/index.js"></script>
+    <script defer src="./src/ui/alerts.js"></script>
+    <script defer src="./src/ui/modals.js"></script>
+    <script defer src="./src/ui/tables.js"></script>
+    <script defer src="./src/ui/navigation.js"></script>
+    <script defer src="./src/utils/date-utils.js"></script>
+    <script defer src="./src/utils/format-utils.js"></script>
+    <script defer src="./src/utils/pdf-utils.js"></script>
+    <script defer src="./src/utils/dom-utils.js"></script>
+    <script defer src="./src/app.js"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -41,7 +70,7 @@
             <button type="submit" class="button button-primary">Einloggen</button>
             <p class="helper-text">
               Vollzugriff gibt es nur für Profile mit <code>is_admin = true</code>. Die passenden
-              Supabase-/Storage-Regeln findest du in <code>supabase-schema.sql</code>.
+              Supabase-/Storage-Regeln findest du in <code>supabase/schema.sql</code>.
             </p>
           </form>
 
