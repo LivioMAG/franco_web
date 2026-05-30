@@ -13,10 +13,9 @@ Die App enthält derzeit mehrere Bereiche in einer statischen Oberfläche:
 
 - Login und Authentifizierung.
 - Wochenrapport-Übersicht mit PDF-Export.
-- Ferien-, Absenz- und Saldo-Verwaltung.
+- Ferien- und Absenz-Verwaltung.
 - Projekt-/Auftragsverwaltung.
 - Dispo-/Planungsansichten.
-- CRM-Listen- und Detailansichten.
 - Einstellungen und administrative Stammdaten.
 - Supabase-Schema und Migrationen.
 
@@ -27,7 +26,6 @@ Die aktuelle App kann weiterhin ohne Framework betrieben werden. Für bessere Wa
 ```text
 /
 ├── index.html                         # Einstiegspunkt der Haupt-App
-├── crm-contact-detail.html            # Separate CRM-Detailseite
 ├── README.md                          # Projektübersicht, Setup und Deployment
 ├── AGENTS.md                          # Hinweise für Agents und Mitwirkende
 ├── package.json                       # Optionale Scripts für Linting/Formatierung/Checks
@@ -50,16 +48,13 @@ Die aktuelle App kann weiterhin ohne Framework betrieben werden. Für bessere Wa
 │   │   ├── reports-service.js         # Wochenrapport-Datenzugriff
 │   │   ├── absences-service.js        # Ferien-/Absenz-Datenzugriff
 │   │   ├── projects-service.js        # Projekt-/Auftrags-Datenzugriff
-│   │   ├── dispo-service.js           # Dispo-Datenzugriff
-│   │   └── crm-service.js             # CRM-Datenzugriff
+│   │   └── dispo-service.js           # Dispo-Datenzugriff
 │   ├── modules/
 │   │   ├── login/                     # Login-Screen und Login-Events
 │   │   ├── reports/                   # Wochenrapport-UI, Filter, Export
 │   │   ├── absences/                  # Ferien-/Absenz-UI
-│   │   ├── saldo/                     # Saldo-Ansichten und Berechnungen
 │   │   ├── projects/                  # Projektliste, Projektformular, Projektaktionen
 │   │   ├── dispo/                     # Dispo-Planer und Dispo-Modale
-│   │   ├── crm/                       # CRM-Liste, CRM-Detail, Notizen, Kontakte
 │   │   └── settings/                  # Benutzer, Feiertage, Schulferien, Admin-Screens
 │   ├── ui/
 │   │   ├── modals.js                  # Wiederverwendbare Modal-Helfer
@@ -80,9 +75,7 @@ Die aktuelle App kann weiterhin ohne Framework betrieben werden. Für bessere Wa
 │   │   ├── reports.css
 │   │   ├── projects.css
 │   │   ├── dispo.css
-│   │   ├── crm.css
 │   │   └── settings.css
-│   └── crm-contact-detail.css         # Styles für die separate CRM-Detailseite
 ├── supabase/
 │   ├── schema.sql                     # Vollständiges Schema oder Referenzschema
 │   └── migrations/                    # Chronologische SQL-Migrationen
@@ -107,5 +100,5 @@ Die aktuelle App kann weiterhin ohne Framework betrieben werden. Für bessere Wa
 - Keine Framework-Abhängigkeiten einführen, solange nicht ausdrücklich gewünscht.
 - Keine Secrets oder produktiven Zugangsdaten committen.
 - Bestehende Vanilla-JS-Patterns respektieren und kleine, nachvollziehbare Funktionen bevorzugen.
-- Vor Änderungen prüfen, ob eine Funktion bereits in `script.js`, `crm-contact-detail.js` oder den SQL-Migrationen existiert.
+- Vor Änderungen prüfen, ob eine Funktion bereits in `script.js` oder den SQL-Migrationen existiert.
 - Änderungen an sichtbarer UI sollten nach Möglichkeit manuell im Browser geprüft werden.

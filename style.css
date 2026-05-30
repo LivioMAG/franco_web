@@ -467,44 +467,6 @@ textarea:focus {
   align-items: center;
 }
 
-.crm-form-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.crm-notes-card {
-  margin-top: 20px;
-  padding: 20px;
-}
-
-.crm-filter-toolbar {
-  margin-bottom: 14px;
-}
-
-.crm-detail-layout {
-  display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
-  gap: 16px;
-  margin-top: 14px;
-}
-
-.crm-detail-info dl {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 8px 12px;
-  margin: 0;
-}
-
-.crm-detail-info dt {
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.crm-detail-info dd {
-  margin: 0;
-}
-
 .stat-card {
   padding: 22px;
 }
@@ -1089,20 +1051,6 @@ tbody tr:hover {
   text-decoration: none;
 }
 
-.saldo-input {
-  min-width: 110px;
-}
-
-.saldo-balance-positive {
-  color: var(--success);
-  font-weight: 600;
-}
-
-.saldo-balance-negative {
-  color: var(--accent);
-  font-weight: 600;
-}
-
 .page {
   display: grid;
   gap: 24px;
@@ -1229,14 +1177,6 @@ tbody tr:hover {
   .grid-two,
   .security-grid,
   .settings-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .crm-form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .crm-detail-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1386,14 +1326,6 @@ tbody tr:hover {
 
 .project-row-static:hover {
   background: transparent;
-}
-
-.crm-row-clickable {
-  cursor: pointer;
-}
-
-.crm-row-clickable:hover {
-  background: rgba(215, 0, 21, 0.05);
 }
 
 .dispo-table th,

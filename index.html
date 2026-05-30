@@ -60,10 +60,6 @@
               <span class="nav-tab-icon" aria-hidden="true">🏖️</span>
               <span class="visually-hidden">Ferien und Absenzen</span>
             </button>
-            <button class="nav-tab" data-page="saldo" type="button" title="Saldo" aria-label="Saldo">
-              <span class="nav-tab-icon" aria-hidden="true">⚖️</span>
-              <span class="visually-hidden">Saldo</span>
-            </button>
             <button class="nav-tab" data-page="projects" type="button" title="Projekte" aria-label="Projekte">
               <span class="nav-tab-icon" aria-hidden="true">🏗️</span>
               <span class="visually-hidden">Projekte</span>
@@ -71,10 +67,6 @@
             <button class="nav-tab" data-page="dispo" type="button" title="Dispo" aria-label="Dispo">
               <span class="nav-tab-icon" aria-hidden="true">🗓️</span>
               <span class="visually-hidden">Dispo</span>
-            </button>
-            <button class="nav-tab" data-page="crm" type="button" title="CRM" aria-label="CRM">
-              <span class="nav-tab-icon" aria-hidden="true">🧾</span>
-              <span class="visually-hidden">CRM</span>
             </button>
             <button class="nav-tab" data-page="settings" type="button" title="Einstellungen" aria-label="Einstellungen">
               <span class="nav-tab-icon" aria-hidden="true">⚙️</span>
@@ -279,41 +271,6 @@
             </div>
           </section>
 
-          <section id="saldoPage" class="page hidden">
-            <div class="panel table-panel">
-              <div class="section-heading">
-                <div>
-                  <h3>Saldo</h3>
-                  <p>
-                    Übersicht pro Profil mit manuell gepflegten Startwerten und automatisch
-                    verbuchten Stunden bei bestätigten Wochenrapporten.
-                  </p>
-                </div>
-              </div>
-
-              <div class="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Überstunden (h)</th>
-                      <th>Feriensaldo (h)</th>
-                      <th>Bezogene Ferien (h)</th>
-                      <th>Zukünftige Ferien (h)</th>
-                      <th>Verbuchte Stunden (h)</th>
-                      <th>Nicht bezahlte Ferienstunden (h)</th>
-                      <th>Ferienguthaben (h)</th>
-                      <th>Gutgeschriebene Stunden (h)</th>
-                      <th>Wochenstunden</th>
-                      <th>Aktion</th>
-                    </tr>
-                  </thead>
-                  <tbody id="saldoTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
           <section id="projectsPage" class="page hidden">
             <div class="panel table-panel">
               <div class="section-heading">
@@ -379,62 +336,6 @@
                   <tbody id="dispoTableBody"></tbody>
                 </table>
               </div>
-            </div>
-          </section>
-
-          <section id="crmPage" class="page hidden">
-            <div class="panel table-panel">
-              <div class="section-heading">
-                <div>
-                  <h3>CRM Kontakte</h3>
-                  <p>
-                    Kontakte zentral erfassen, kategorisieren und mit Notizen pro Datensatz
-                    dokumentieren.
-                  </p>
-                </div>
-                <button id="openCrmCreateModalButton" class="button button-primary button-icon" type="button" title="Neuen Kontakt erstellen" aria-label="Neuen Kontakt erstellen">
-                  +
-                </button>
-              </div>
-              <div id="crmAlert" class="alert hidden"></div>
-
-              <div id="crmContactListView">
-                <div class="report-filter-toolbar crm-filter-toolbar">
-                  <label>
-                    <span>Suche</span>
-                    <input id="crmSearchInput" type="search" placeholder="Nach Firma oder Vor-/Nachname suchen" />
-                  </label>
-                  <label>
-                    <span>Kategorie</span>
-                    <select id="crmCategoryFilterInput">
-                      <option value="">Alle Kategorien</option>
-                      <option value="kunde">Kunde</option>
-                      <option value="lieferant">Lieferant</option>
-                      <option value="elektroplaner">Elektroplaner</option>
-                      <option value="subunternehmer">Subunternehmer</option>
-                      <option value="unternehmer">Unternehmer</option>
-                    </select>
-                  </label>
-                </div>
-
-                <div class="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Kategorie</th>
-                        <th>Firma</th>
-                        <th>Vorname</th>
-                        <th>Nachname</th>
-                        <th>Telefon</th>
-                        <th>E-Mail</th>
-                        <th>Aktion</th>
-                      </tr>
-                    </thead>
-                    <tbody id="crmContactsTableBody"></tbody>
-                  </table>
-                </div>
-              </div>
-
             </div>
           </section>
 
@@ -1029,70 +930,6 @@
             <div class="modal-actions">
               <button id="cancelBlockDayButton" class="button button-secondary" type="button">Abbrechen</button>
               <button class="button button-primary" type="submit">Fertig</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div id="crmContactModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="crmContactModalTitle">
-        <div class="modal-backdrop" data-close-crm-contact-modal="true"></div>
-        <div class="modal-card panel">
-          <div class="section-heading">
-            <div>
-              <h3 id="crmContactModalTitle">CRM Kontakt</h3>
-              <p>Neuen Kontakt erfassen oder bestehenden Kontakt bearbeiten.</p>
-            </div>
-          </div>
-          <form id="crmContactForm" class="settings-form">
-            <input id="crmContactIdInput" type="hidden" />
-            <div class="crm-form-grid">
-              <label>
-                <span>Kategorie</span>
-                <select id="crmCategoryInput" required>
-                  <option value="kunde">Kunde</option>
-                  <option value="lieferant">Lieferant</option>
-                  <option value="elektroplaner">Elektroplaner</option>
-                  <option value="subunternehmer">Subunternehmer</option>
-                  <option value="unternehmer">Unternehmer</option>
-                </select>
-              </label>
-              <label>
-                <span>Firma (optional)</span>
-                <input id="crmCompanyInput" type="text" maxlength="180" placeholder="Muster AG" />
-              </label>
-              <label>
-                <span>Vorname</span>
-                <input id="crmFirstNameInput" type="text" maxlength="120" required />
-              </label>
-              <label>
-                <span>Nachname</span>
-                <input id="crmLastNameInput" type="text" maxlength="120" required />
-              </label>
-              <label>
-                <span>Strasse</span>
-                <input id="crmStreetInput" type="text" maxlength="180" />
-              </label>
-              <label>
-                <span>Ort</span>
-                <input id="crmCityInput" type="text" maxlength="120" />
-              </label>
-              <label>
-                <span>Postleitzahl</span>
-                <input id="crmPostalCodeInput" type="text" maxlength="20" />
-              </label>
-              <label>
-                <span>Telefon</span>
-                <input id="crmPhoneInput" type="text" maxlength="50" />
-              </label>
-              <label>
-                <span>E-Mail</span>
-                <input id="crmEmailInput" type="email" maxlength="180" />
-              </label>
-            </div>
-            <div class="modal-actions">
-              <button id="saveCrmContactButton" class="button button-primary" type="submit">Kontakt speichern</button>
-              <button id="resetCrmContactFormButton" class="button button-secondary" type="button">Zurücksetzen</button>
-              <button id="closeCrmContactModalButton" class="button button-secondary" type="button">Schliessen</button>
             </div>
           </form>
         </div>
