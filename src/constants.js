@@ -737,7 +737,7 @@ const state = {
   isSavingProject: false,
   isSavingDispo: false,
   dispoAssignContext: null,
-  dispoAllowMultiplePerDay: true,
+  dispoExpandedCells: [],
   selectedProjectId: null,
   reportColumnFilter: { type: 'none', values: [] },
   reportsSortMode: 'date_desc',

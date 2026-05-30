@@ -142,18 +142,6 @@ function cacheElements() {
   elements.dispoTableHead = document.getElementById('dispoTableHead');
   elements.dispoTableBody = document.getElementById('dispoTableBody');
   elements.dispoExportPdfButton = document.getElementById('dispoExportPdfButton');
-  elements.dispoGapSearchButton = document.getElementById('dispoGapSearchButton');
-  elements.dispoGapResults = document.getElementById('dispoGapResults');
-  elements.dispoGapSearchModal = document.getElementById('dispoGapSearchModal');
-  elements.dispoGapSearchForm = document.getElementById('dispoGapSearchForm');
-  elements.dispoGapWeekFromInput = document.getElementById('dispoGapWeekFromInput');
-  elements.dispoGapWeekToInput = document.getElementById('dispoGapWeekToInput');
-  elements.dispoGapMinimumHoursInput = document.getElementById('dispoGapMinimumHoursInput');
-  elements.dispoGapServiceProfiles = document.getElementById('dispoGapServiceProfiles');
-  elements.dispoGapModalResults = document.getElementById('dispoGapModalResults');
-  elements.closeDispoGapSearchModalButton = document.getElementById('closeDispoGapSearchModalButton');
-  elements.cancelDispoGapSearchButton = document.getElementById('cancelDispoGapSearchButton');
-  elements.dispoMultiEntryInput = document.getElementById('dispoMultiEntryInput');
   elements.dispoAssignModal = document.getElementById('dispoAssignModal');
   elements.dispoAssignForm = document.getElementById('dispoAssignForm');
   elements.dispoAssignTargetLabel = document.getElementById('dispoAssignTargetLabel');
@@ -162,8 +150,6 @@ function cacheElements() {
   elements.dispoAssignManualFields = document.getElementById('dispoAssignManualFields');
   elements.dispoAssignManualCommissionInput = document.getElementById('dispoAssignManualCommissionInput');
   elements.dispoAssignManualProjectNameInput = document.getElementById('dispoAssignManualProjectNameInput');
-  elements.dispoAssignStartTime = document.getElementById('dispoAssignStartTime');
-  elements.dispoAssignEndTime = document.getElementById('dispoAssignEndTime');
   elements.closeDispoAssignModalButton = document.getElementById('closeDispoAssignModalButton');
   elements.cancelDispoAssignButton = document.getElementById('cancelDispoAssignButton');
   elements.navTabs = Array.from(document.querySelectorAll('.nav-tab'));
@@ -311,25 +297,9 @@ function bindEvents() {
   });
   elements.dispoTableBody.addEventListener('click', handleDispoTableClick);
   elements.dispoTableHead.addEventListener('click', handleDispoTableClick);
-  elements.dispoExportPdfButton.addEventListener('click', exportDispoPdf);
-  elements.dispoGapSearchButton.addEventListener('click', openDispoGapSearchModal);
-  if (elements.dispoGapSearchForm) {
-    elements.dispoGapSearchForm.addEventListener('submit', handleDispoGapSearchSubmit);
+  if (elements.dispoExportPdfButton) {
+    elements.dispoExportPdfButton.addEventListener('click', exportDispoPdf);
   }
-  if (elements.closeDispoGapSearchModalButton) {
-    elements.closeDispoGapSearchModalButton.addEventListener('click', closeDispoGapSearchModal);
-  }
-  if (elements.cancelDispoGapSearchButton) {
-    elements.cancelDispoGapSearchButton.addEventListener('click', closeDispoGapSearchModal);
-  }
-  if (elements.dispoGapSearchModal) {
-    elements.dispoGapSearchModal.addEventListener('click', (event) => {
-      if (event.target?.dataset?.closeDispoGapSearchModal === 'true') {
-        closeDispoGapSearchModal();
-      }
-    });
-  }
-  elements.dispoMultiEntryInput.addEventListener('change', handleDispoMultiEntryToggle);
   elements.dispoAssignForm.addEventListener('submit', handleDispoAssignSubmit);
   elements.dispoAssignForm.addEventListener('change', handleDispoAssignChoiceChange);
   elements.closeDispoAssignModalButton.addEventListener('click', closeDispoAssignModal);
