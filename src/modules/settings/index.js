@@ -128,6 +128,8 @@ async function handleSaveUserSettings(profileId) {
   const roleSelect = document.querySelector(`select[data-role-label-input="${profileId}"]`);
   const roleLabel = String(roleSelect?.value || '').trim();
   const targetInput = document.querySelector(`[data-target-revenue-input="${profileId}"]`);
+  const weeklyHoursInput = document.querySelector(`[data-weekly-hours-input="${profileId}"]`);
+  const vacationAllowanceInput = document.querySelector(`[data-vacation-allowance-hours-input="${profileId}"]`);
   if (!roleLabel) {
     alert('Bitte eine gültige Rolle auswählen.');
     return;
@@ -142,9 +144,21 @@ async function handleSaveUserSettings(profileId) {
     alert('Bitte einen gültigen Sollerlös (CHF) >= 0 eingeben.');
     return;
   }
+  const parsedWeeklyHours = Number(String(weeklyHoursInput?.value || '').replace(',', '.'));
+  if (!Number.isFinite(parsedWeeklyHours) || parsedWeeklyHours < 0) {
+    alert('Bitte eine gültige Wochenarbeitszeit >= 0 eingeben.');
+    return;
+  }
+  const parsedVacationAllowanceHours = Number(String(vacationAllowanceInput?.value || '').replace(',', '.'));
+  if (!Number.isFinite(parsedVacationAllowanceHours) || parsedVacationAllowanceHours < 0) {
+    alert('Bitte ein gültiges Ferienguthaben >= 0 eingeben.');
+    return;
+  }
   const updates = {
     role_label: roleLabel,
     target_revenue: parsedTargetRevenue,
+    weekly_hours: parsedWeeklyHours,
+    vacation_allowance_hours: parsedVacationAllowanceHours,
     school_day_1: roleLabel === 'Lehrling' ? schoolDay : null,
     school_day_2: null,
   };
@@ -942,7 +956,7 @@ function renderHistoryActionsCell(entry) {
 function renderSettingsUsersTable() {
   if (!elements.settingsUsersTableBody) return;
   if (!state.profiles.length) {
-    elements.settingsUsersTableBody.innerHTML = '<tr><td colspan="8">Keine Benutzer gefunden.</td></tr>';
+    elements.settingsUsersTableBody.innerHTML = '<tr><td colspan="10">Keine Benutzer gefunden.</td></tr>';
     return;
   }
 
@@ -984,6 +998,26 @@ function renderSettingsUsersTable() {
           step="0.01"
           value="${escapeAttribute(Number(profile.target_revenue || 0).toFixed(2))}"
           data-target-revenue-input="${escapeAttribute(profile.id)}"
+          ${state.isSavingSettings ? 'disabled' : ''}
+        />
+      </td>
+      <td>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value="${escapeAttribute(Number(profile.weekly_hours ?? 40).toFixed(2))}"
+          data-weekly-hours-input="${escapeAttribute(profile.id)}"
+          ${state.isSavingSettings ? 'disabled' : ''}
+        />
+      </td>
+      <td>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value="${escapeAttribute(Number(profile.vacation_allowance_hours || 0).toFixed(2))}"
+          data-vacation-allowance-hours-input="${escapeAttribute(profile.id)}"
           ${state.isSavingSettings ? 'disabled' : ''}
         />
       </td>
