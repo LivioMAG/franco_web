@@ -1212,13 +1212,20 @@ function renderHolidayRejectCell(request) {
   const rejectButton = isHolidayRequestFullyApproved(request)
     ? ''
     : `<button class="button button-small button-danger absence-icon-button" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Absenzgesuch ablehnen" aria-label="Absenzgesuch ablehnen" ${state.isSavingAbsence ? 'disabled' : ''}>✕</button>`;
+  const absenceInfoButton = isVacationRequest(request)
+    ? `<button class="button button-small button-secondary absence-icon-button" type="button" data-action="show-absence-info" data-request-id="${escapeAttribute(request.id)}" title="Rapportierte Stunden anzeigen" aria-label="Rapportierte Stunden anzeigen">ⓘ</button>`
+    : '';
 
   return `
     <div class="absence-action-buttons">
-      <button class="button button-small button-secondary absence-icon-button" type="button" data-action="show-absence-info" data-request-id="${escapeAttribute(request.id)}" title="Rapportierte Stunden anzeigen" aria-label="Rapportierte Stunden anzeigen">ⓘ</button>
+      ${absenceInfoButton}
       ${rejectButton || '<span class="subtle-text">—</span>'}
     </div>
   `;
+}
+
+function isVacationRequest(request) {
+  return Number(getAbsenceTypeCode(request)) === 1;
 }
 
 function renderHolidayConfirmationCell(request) {
