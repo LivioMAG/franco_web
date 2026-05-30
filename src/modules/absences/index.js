@@ -293,8 +293,16 @@ function renderAbsenceInfoModalState() {
     return;
   }
 
+  const balanceClass = summary.remainingMinutes >= 0 ? 'positive' : 'negative';
+  const balanceLabel = summary.remainingMinutes >= 0 ? 'Überschuss' : 'Fehlbetrag';
+
   elements.absenceInfoModalContent.innerHTML = `
     <div class="absence-info-grid">
+      <div class="absence-info-card">
+        <span>Kontingent</span>
+        <strong>${escapeHtml(formatMinutes(summary.allowanceMinutes))}</strong>
+        <small>Ferienguthaben von ${escapeHtml(summary.employeeName)}</small>
+      </div>
       <div class="absence-info-card">
         <span>Bereits rapportiert</span>
         <strong>${escapeHtml(formatMinutes(summary.pastMinutes))}</strong>
@@ -305,13 +313,13 @@ function renderAbsenceInfoModalState() {
         <strong>${escapeHtml(formatMinutes(summary.futureMinutes))}</strong>
         <small>${escapeHtml(formatDate(summary.futureStartDate))} bis 31.12.${escapeHtml(String(summary.year))}</small>
       </div>
-      <div class="absence-info-card total">
-        <span>Total im Jahr</span>
-        <strong>${escapeHtml(formatMinutes(summary.totalMinutes))}</strong>
-        <small>${escapeHtml(String(summary.reportCount))} Rapport(e) gefunden</small>
+      <div class="absence-info-card total ${escapeAttribute(balanceClass)}">
+        <span>${escapeHtml(balanceLabel)}</span>
+        <strong>${escapeHtml(formatSignedMinutes(summary.remainingMinutes))}</strong>
+        <small>Kontingent − bereits rapportiert − zukünftig rapportiert</small>
       </div>
     </div>
-    <p class="subtle-text">Ausgewertet werden Wochenrapporte des Mitarbeiters mit dem Absenztyp „${escapeHtml(summary.typeLabel)}“ im aktuellen Kalenderjahr.</p>
+    <p class="subtle-text">Ausgewertet werden ${escapeHtml(String(summary.reportCount))} Wochenrapport(e) des Mitarbeiters mit dem Absenztyp „${escapeHtml(summary.typeLabel)}“ im aktuellen Kalenderjahr. Total rapportiert: ${escapeHtml(formatMinutes(summary.totalMinutes))}. Das Kontingent entspricht dem erfassten Ferienguthaben in den Mitarbeitereinstellungen.</p>
   `;
 }
 
@@ -368,6 +376,8 @@ function buildEmptyAbsenceInfoSummary(request) {
     pastMinutes: 0,
     futureMinutes: 0,
     totalMinutes: 0,
+    allowanceMinutes: getVacationAllowanceMinutes(profile),
+    remainingMinutes: getVacationAllowanceMinutes(profile),
     reportCount: 0,
   };
 }
@@ -383,8 +393,20 @@ function buildAbsenceInfoSummary(request, reports) {
     }
   });
   summary.totalMinutes = summary.pastMinutes + summary.futureMinutes;
+  summary.remainingMinutes = summary.allowanceMinutes - summary.totalMinutes;
   summary.reportCount = reports.length;
   return summary;
+}
+
+function getVacationAllowanceMinutes(profile) {
+  const allowanceHours = Number(profile?.vacation_allowance_hours || 0);
+  return Number.isFinite(allowanceHours) && allowanceHours > 0 ? allowanceHours * 60 : 0;
+}
+
+function formatSignedMinutes(minutes) {
+  const numericMinutes = Number(minutes || 0);
+  const sign = numericMinutes > 0 ? '+' : numericMinutes < 0 ? '−' : '';
+  return `${sign}${formatMinutes(Math.abs(numericMinutes))}`;
 }
 
 async function fetchAbsenceInfoReports(request) {
