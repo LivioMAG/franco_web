@@ -127,11 +127,10 @@ function resetAppState() {
   state.absenceSelectionTouched = false;
   state.showControlledAbsences = false;
   state.includeConfirmationHistory = false;
+  state.showPastAbsences = false;
   state.reportsPage = 1;
   state.selectedProjectId = null;
   state.dispoAllowMultiplePerDay = true;
-  state.isConfirmationsModalOpen = false;
-  state.isRejectedAbsencesModalOpen = false;
   state.isAbsenceInfoModalOpen = false;
   state.absenceInfoRequestId = null;
   state.isAbsenceInfoLoading = false;

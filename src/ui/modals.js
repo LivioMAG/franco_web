@@ -14,14 +14,6 @@ function handleGlobalKeydown(event) {
     closeProjectModal();
     return;
   }
-  if (elements.confirmationsModal && !elements.confirmationsModal.classList.contains('hidden')) {
-    closeConfirmationsModal();
-    return;
-  }
-  if (elements.rejectedAbsencesModal && !elements.rejectedAbsencesModal.classList.contains('hidden')) {
-    closeRejectedAbsencesModal();
-    return;
-  }
   if (elements.bulkConfirmModal && !elements.bulkConfirmModal.classList.contains('hidden')) {
     closeBulkConfirmModal();
     return;
@@ -29,28 +21,6 @@ function handleGlobalKeydown(event) {
   if (!elements.reportEditModal.classList.contains('hidden')) {
     closeReportEditModal();
   }
-}
-
-function openConfirmationsModal() {
-  state.isConfirmationsModalOpen = true;
-  renderConfirmationsModalState();
-  renderConfirmationsTable();
-}
-
-function closeConfirmationsModal() {
-  state.isConfirmationsModalOpen = false;
-  renderConfirmationsModalState();
-}
-
-function openRejectedAbsencesModal() {
-  state.isRejectedAbsencesModalOpen = true;
-  renderRejectedAbsencesModalState();
-  renderRejectedAbsencesTable();
-}
-
-function closeRejectedAbsencesModal() {
-  state.isRejectedAbsencesModalOpen = false;
-  renderRejectedAbsencesModalState();
 }
 
 function getProjectLeadProjects() {

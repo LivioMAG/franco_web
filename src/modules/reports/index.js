@@ -38,10 +38,6 @@ function render() {
   renderMissingReportsCallModalState();
   renderAbsenceTable();
   renderBulkConfirmModalState();
-  renderConfirmationsModalState();
-  renderConfirmationsTable();
-  renderRejectedAbsencesModalState();
-  renderRejectedAbsencesTable();
   renderAbsenceInfoModalState();
   renderProjectsTable();
   renderDispoPlanner();

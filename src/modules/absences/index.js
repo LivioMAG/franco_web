@@ -29,101 +29,95 @@ function renderAbsenceFilters() {
 }
 
 function renderAbsenceTable() {
-  if (!state.holidayRequests.length) {
-    elements.absencesTableBody.innerHTML = `<tr><td colspan="10">Keine Ferien- oder Absenzanträge gefunden.</td></tr>`;
+  if (!elements.absencesTableBody) {
     return;
   }
 
-  const sorted = getFilteredHolidayRequests();
-  if (!sorted.length) {
-    elements.absencesTableBody.innerHTML = `<tr><td colspan="10">Keine Ferien- oder Absenzanträge gefunden.</td></tr>`;
+  renderAbsencesViewState();
+
+  const rows = state.showPastAbsences ? getPastHolidayRequests() : getFilteredHolidayRequests();
+  const emptyLabel = state.showPastAbsences
+    ? 'Keine vergangenen Ferien- oder Absenzanträge gefunden.'
+    : 'Keine Ferien- oder Absenzanträge gefunden.';
+
+  if (!rows.length) {
+    elements.absencesTableBody.innerHTML = `<tr><td colspan="10">${emptyLabel}</td></tr>`;
     return;
   }
 
-  elements.absencesTableBody.innerHTML = sorted
-    .map((request) => {
-      const profile = getProfileById(request.profile_id);
-      return `
-        <tr>
-          <td>${escapeHtml(profile?.full_name ?? 'Unbekannt')}</td>
-          <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
-          <td>${escapeHtml(formatDateOnly(request.created_at))}</td>
-          <td>${formatDate(request.start_date)}</td>
-          <td>${formatDate(request.end_date)}</td>
-          <td>${escapeHtml(request.notes || '–')}</td>
-          <td>${renderAttachmentLinks(request.attachments)}</td>
-          <td>${renderHolidayApprovalCell(request, 'controll_pl', 'PL')}</td>
-          <td>${renderHolidayApprovalCell(request, 'controll_gl', 'GL')}</td>
-          <td>${renderHolidayRejectCell(request)}</td>
-        </tr>
-      `;
-    })
+  elements.absencesTableBody.innerHTML = rows
+    .map((request) => renderAbsenceTableRow(request))
     .join('');
 }
 
-
-function renderConfirmationsModalState() {
-  if (!elements.confirmationsModal) return;
-  elements.confirmationsModal.classList.toggle('hidden', !state.isConfirmationsModalOpen);
+function renderAbsencesViewState() {
+  const isPastView = Boolean(state.showPastAbsences);
+  if (elements.absencesPanelTitle) {
+    elements.absencesPanelTitle.textContent = isPastView
+      ? 'Vergangene Ferien- und Absenzanträge'
+      : 'Ferien- und Absenzanträge';
+  }
+  if (elements.togglePastAbsencesButton) {
+    elements.togglePastAbsencesButton.textContent = isPastView
+      ? 'Aktuelle Absenzen'
+      : 'Vergangene Absenzen';
+    elements.togglePastAbsencesButton.setAttribute(
+      'aria-label',
+      isPastView
+        ? 'Aktuelle Ferien- und Absenzanträge anzeigen'
+        : 'Vergangene Ferien- und Absenzanträge anzeigen',
+    );
+  }
 }
 
-function renderConfirmationsTable() {
-  if (!elements.confirmationsTableBody) {
-    return;
-  }
+function renderAbsenceTableRow(request) {
+  const profile = getProfileById(request.profile_id);
+  const isRejectedPastRequest = state.showPastAbsences && getHolidayRequestApprovalStatus(request) === 0;
+  const rejectedTextClass = isRejectedPastRequest ? ' class="absence-rejected-text"' : '';
+  return `
+    <tr${isRejectedPastRequest ? ' class="absence-row-rejected"' : ''}>
+      <td${rejectedTextClass}>${escapeHtml(profile?.full_name ?? 'Unbekannt')}</td>
+      <td${rejectedTextClass}>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
+      <td${rejectedTextClass}>${escapeHtml(formatDateOnly(request.created_at))}</td>
+      <td${rejectedTextClass}>${formatDate(request.start_date)}</td>
+      <td${rejectedTextClass}>${formatDate(request.end_date)}</td>
+      <td>${escapeHtml(request.notes || '–')}</td>
+      <td>${renderAttachmentLinks(request.attachments)}</td>
+      <td>${state.showPastAbsences ? escapeHtml(String(request.controll_pl || '').trim() || '–') : renderHolidayApprovalCell(request, 'controll_pl', 'PL')}</td>
+      <td>${state.showPastAbsences ? escapeHtml(String(request.controll_gl || '').trim() || '–') : renderHolidayApprovalCell(request, 'controll_gl', 'GL')}</td>
+      <td>${state.showPastAbsences ? renderPastHolidayActionsCell(request) : renderHolidayRejectCell(request)}</td>
+    </tr>
+  `;
+}
 
-  const approvedRequests = getHolidayRequestsByApprovalStatus(2);
+function togglePastAbsencesView() {
+  state.showPastAbsences = !state.showPastAbsences;
+  renderAbsenceTable();
+}
 
-  if (!approvedRequests.length) {
-    elements.confirmationsTableBody.innerHTML = '<tr><td colspan="5">Keine bestätigten Absenzen vorhanden.</td></tr>';
-    return;
-  }
-
-  elements.confirmationsTableBody.innerHTML = approvedRequests
-    .map((request) => {
-      const profile = getProfileById(request.profile_id);
-      const personLabel = profile?.full_name || profile?.email || 'Unbekannt';
-      return `
-        <tr>
-          <td>${escapeHtml(personLabel)}</td>
-          <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
-          <td>${escapeHtml(formatDateOnly(request.created_at))}</td>
-          <td>${escapeHtml(formatDate(request.start_date))} bis ${escapeHtml(formatDate(request.end_date))}</td>
-          <td>${escapeHtml(buildApprovalByLabel(request))}</td>
-        </tr>
-      `;
+function getPastHolidayRequests() {
+  const today = getTodayIsoDate();
+  return [...state.holidayRequests]
+    .filter((request) => {
+      const status = getHolidayRequestApprovalStatus(request);
+      return (status === 0 || status === 2) && String(request.end_date || '') < today;
     })
-    .join('');
+    .sort((a, b) => {
+      const endCompare = String(b.end_date || '').localeCompare(String(a.end_date || ''));
+      if (endCompare !== 0) return endCompare;
+      return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+    });
 }
 
-function renderRejectedAbsencesModalState() {
-  if (!elements.rejectedAbsencesModal) return;
-  elements.rejectedAbsencesModal.classList.toggle('hidden', !state.isRejectedAbsencesModalOpen);
+function renderPastHolidayActionsCell(request) {
+  return `
+    <div class="absence-action-buttons">
+      <button class="button button-small button-secondary" type="button" data-action="download-absence-confirmation" data-request-id="${escapeAttribute(request.id)}">Download</button>
+      <button class="button button-small button-danger" type="button" data-action="delete-absence-request" data-request-id="${escapeAttribute(request.id)}" ${state.isSavingAbsence ? 'disabled' : ''}>Entfernen</button>
+    </div>
+  `;
 }
 
-function renderRejectedAbsencesTable() {
-  if (!elements.rejectedAbsencesTableBody) return;
-  const rejectedRequests = getHolidayRequestsByApprovalStatus(0);
-  if (!rejectedRequests.length) {
-    elements.rejectedAbsencesTableBody.innerHTML = '<tr><td colspan="5">Keine abgelehnten Absenzen vorhanden.</td></tr>';
-    return;
-  }
-  elements.rejectedAbsencesTableBody.innerHTML = rejectedRequests
-    .map((request) => {
-      const profile = getProfileById(request.profile_id);
-      const personLabel = profile?.full_name || profile?.email || 'Unbekannt';
-      return `
-        <tr>
-          <td>${escapeHtml(personLabel)}</td>
-          <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
-          <td>${escapeHtml(formatDateOnly(request.created_at))}</td>
-          <td>${escapeHtml(formatDate(request.start_date))}</td>
-          <td>${escapeHtml(formatDate(request.end_date))}</td>
-        </tr>
-      `;
-    })
-    .join('');
-}
 
 function handleAbsenceFilterInput(event) {
   state.absenceFilterQuery = event.target.value;
@@ -234,6 +228,11 @@ function handleAbsencesTableClick(event) {
 
   if (trigger.dataset.action === 'reject-absence-request') {
     handleRejectHolidayRequest(requestId);
+    return;
+  }
+
+  if (trigger.dataset.action === 'delete-absence-request') {
+    handleDeleteHolidayRequest(requestId);
     return;
   }
 
@@ -561,6 +560,45 @@ async function handleRejectHolidayRequest(requestId) {
   } catch (error) {
     console.error(error);
     alert(`Absenzgesuch konnte nicht abgelehnt werden: ${error.message}`);
+  } finally {
+    state.isSavingAbsence = false;
+    render();
+  }
+}
+
+
+async function handleDeleteHolidayRequest(requestId) {
+  if (!requestId || state.isSavingAbsence) {
+    return;
+  }
+
+  const request = state.holidayRequests.find((item) => String(item.id) === String(requestId));
+  if (!request) {
+    alert('Das ausgewählte Absenzgesuch wurde nicht gefunden.');
+    return;
+  }
+
+  const shouldDelete = window.confirm('Soll dieses vergangene Absenzgesuch wirklich entfernt werden?');
+  if (!shouldDelete) {
+    return;
+  }
+
+  state.isSavingAbsence = true;
+  try {
+    if (state.isDemoMode) {
+      deleteDemoHolidayRequest(requestId);
+    } else {
+      const { error } = await state.supabase.from('holiday_requests').delete().eq('id', requestId);
+      if (error) {
+        throw error;
+      }
+      await deleteHolidayRequestAttachmentsSafely(request.attachments);
+    }
+
+    await loadData();
+  } catch (error) {
+    console.error(error);
+    alert(`Absenzgesuch konnte nicht entfernt werden: ${error.message}`);
   } finally {
     state.isSavingAbsence = false;
     render();
