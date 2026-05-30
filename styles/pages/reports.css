@@ -524,3 +524,58 @@
 }
 
 }
+
+.absence-action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.absence-icon-button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+}
+
+.absence-info-content {
+  display: grid;
+  gap: 16px;
+}
+
+.absence-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.absence-info-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.absence-info-card span,
+.absence-info-card small {
+  color: var(--muted);
+}
+
+.absence-info-card strong {
+  font-size: 1.4rem;
+}
+
+.absence-info-card.total {
+  border-color: rgba(215, 0, 21, 0.18);
+  background: rgba(215, 0, 21, 0.07);
+}
+
+@media (max-width: 720px) {
+  .absence-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

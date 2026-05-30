@@ -132,6 +132,11 @@ function resetAppState() {
   state.dispoAllowMultiplePerDay = true;
   state.isConfirmationsModalOpen = false;
   state.isRejectedAbsencesModalOpen = false;
+  state.isAbsenceInfoModalOpen = false;
+  state.absenceInfoRequestId = null;
+  state.isAbsenceInfoLoading = false;
+  state.absenceInfoError = '';
+  state.absenceInfoSummary = null;
   state.editingReportId = null;
   state.isSavingReport = false;
   state.isSavingProject = false;
