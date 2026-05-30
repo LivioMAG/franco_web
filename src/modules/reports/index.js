@@ -1212,14 +1212,14 @@ function renderControllCell(report) {
 
 function renderHolidayApprovalCell(request, fieldName, roleLabel) {
   const approvalValue = String(request?.[fieldName] || '').trim();
-  if (approvalValue) {
-    return `<div class="status-stack compact"><span class="pill success">Bestätigt</span><strong>${escapeHtml(approvalValue)}</strong></div>`;
-  }
+  const isApproved = Boolean(approvalValue);
+  const titleText = isApproved ? `${roleLabel} bestätigt von ${approvalValue}` : `Bestätigung ${roleLabel}`;
+  const ariaLabel = isApproved ? titleText : `Bestätigung ${roleLabel}`;
 
   return `
-    <div class="status-stack compact">
-      <button class="button button-small button-success" type="button" data-action="confirm-absence-${escapeAttribute(roleLabel.toLowerCase())}" data-request-id="${escapeAttribute(request.id)}" ${state.isSavingAbsence ? 'disabled' : ''}>Bestätigung ${escapeHtml(roleLabel)}</button>
-    </div>
+    <label class="control-checkbox-button ${isApproved ? 'is-controlled' : ''}" data-action="confirm-absence-${escapeAttribute(roleLabel.toLowerCase())}" data-request-id="${escapeAttribute(request.id)}" title="${escapeAttribute(titleText)}">
+      <input type="checkbox" ${isApproved ? 'checked' : ''} ${state.isSavingAbsence || isApproved ? 'disabled' : ''} aria-label="${escapeAttribute(ariaLabel)}" />
+    </label>
   `;
 }
 

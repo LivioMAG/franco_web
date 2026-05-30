@@ -187,6 +187,24 @@ function formatDateWithWeekday(dateString) {
   return weekdayLabel ? `${weekdayLabel} ${dateLabel}` : dateLabel;
 }
 
+function formatDateOnly(value) {
+  if (!value) {
+    return '–';
+  }
+
+  const dateOnlyMatch = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+  if (dateOnlyMatch) {
+    return formatDate(dateOnlyMatch[1]);
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleDateString('de-CH');
+}
+
 function formatDateTime(value) {
   if (!value) {
     return '–';

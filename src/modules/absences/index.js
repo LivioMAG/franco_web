@@ -47,13 +47,13 @@ function renderAbsenceTable() {
         <tr>
           <td>${escapeHtml(profile?.full_name ?? 'Unbekannt')}</td>
           <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
-          <td>${escapeHtml(formatDateTime(request.created_at))}</td>
+          <td>${escapeHtml(formatDateOnly(request.created_at))}</td>
           <td>${formatDate(request.start_date)}</td>
           <td>${formatDate(request.end_date)}</td>
           <td>${escapeHtml(request.notes || '–')}</td>
           <td>${renderAttachmentLinks(request.attachments)}</td>
           <td>${renderHolidayApprovalCell(request, 'controll_pl', 'PL')}</td>
-          <td>${renderHolidayApprovalCell(request, 'controll_gl', 'GL', false)}</td>
+          <td>${renderHolidayApprovalCell(request, 'controll_gl', 'GL')}</td>
           <td>${renderHolidayRejectCell(request)}</td>
         </tr>
       `;
@@ -87,7 +87,7 @@ function renderConfirmationsTable() {
         <tr>
           <td>${escapeHtml(personLabel)}</td>
           <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
-          <td>${escapeHtml(formatDateTime(request.created_at))}</td>
+          <td>${escapeHtml(formatDateOnly(request.created_at))}</td>
           <td>${escapeHtml(formatDate(request.start_date))} bis ${escapeHtml(formatDate(request.end_date))}</td>
           <td>${escapeHtml(buildApprovalByLabel(request))}</td>
         </tr>
@@ -116,7 +116,7 @@ function renderRejectedAbsencesTable() {
         <tr>
           <td>${escapeHtml(personLabel)}</td>
           <td>${escapeHtml(getAbsenceTypeLabel(request, request.request_type))}</td>
-          <td>${escapeHtml(formatDateTime(request.created_at))}</td>
+          <td>${escapeHtml(formatDateOnly(request.created_at))}</td>
           <td>${escapeHtml(formatDate(request.start_date))}</td>
           <td>${escapeHtml(formatDate(request.end_date))}</td>
         </tr>
@@ -264,8 +264,8 @@ async function handleConfirmHolidayRequest(requestId, fieldName, roleLabel) {
     return;
   }
 
-  const shouldConfirm = window.confirm('Bist du sicher, dass du die Ferien bestätigen möchtest?');
-  if (!shouldConfirm) {
+  const request = state.holidayRequests.find((item) => String(item.id) === String(requestId));
+  if (!request || String(request[fieldName] || '').trim()) {
     return;
   }
 
@@ -275,11 +275,15 @@ async function handleConfirmHolidayRequest(requestId, fieldName, roleLabel) {
     return;
   }
 
+  const previousApprovalValue = request[fieldName];
+  request[fieldName] = approvalName;
+
   state.isSavingAbsence = true;
+  renderAbsenceTable();
+
   try {
     await withLongTask('Absenzbestätigung wird verarbeitet …', async () => {
       const updates = { [fieldName]: approvalName };
-      const request = state.holidayRequests.find((item) => String(item.id) === String(requestId));
 
       if (state.isDemoMode) {
         updateDemoHolidayRequest(requestId, updates);
@@ -312,6 +316,9 @@ async function handleConfirmHolidayRequest(requestId, fieldName, roleLabel) {
       await loadData();
     });
   } catch (error) {
+    if (request) {
+      request[fieldName] = previousApprovalValue;
+    }
     console.error(error);
     alert(`Bestätigung ${roleLabel} konnte nicht gespeichert werden: ${error.message}`);
   } finally {
