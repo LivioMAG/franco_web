@@ -71,6 +71,20 @@
   text-align: right;
 }
 
+
+.report-controlled-toggle {
+  color: var(--text);
+  border-color: rgba(17, 17, 17, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.report-controlled-toggle.is-active,
+.report-controlled-toggle[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: rgba(215, 0, 21, 0.3);
+  background: rgba(215, 0, 21, 0.08);
+}
+
 .report-overview-panel,
 .report-status-panel {
   padding: 30px;

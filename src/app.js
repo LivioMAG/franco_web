@@ -228,7 +228,12 @@ function bindEvents() {
   if (elements.reportsToolbarPlaceholderButton) {
     elements.reportsToolbarPlaceholderButton.addEventListener('click', openBulkConfirmModal);
   }
-  elements.showControlledReportsInput.addEventListener('change', handleShowControlledReportsToggle);
+  if (elements.showControlledReportsInput) {
+    elements.showControlledReportsInput.addEventListener('change', handleShowControlledReportsToggle);
+  }
+  if (elements.showControlledReportsToggle) {
+    elements.showControlledReportsToggle.addEventListener('click', handleShowControlledReportsToggle);
+  }
   document.addEventListener('click', handleGlobalColumnFilterDismiss);
   if (elements.absenceFilterInput) elements.absenceFilterInput.addEventListener('input', handleAbsenceFilterInput);
   if (elements.selectAllAbsenceEmployeesButton) elements.selectAllAbsenceEmployeesButton.addEventListener('click', selectAllAbsenceEmployees);
