@@ -66,8 +66,10 @@ function renderDispoCell(profileId, date) {
     : '';
   return `<td><div class="dispo-cell">
     ${blockTagBadges}
-    <div class="dispo-items">${visibleItems.map((item, index) => renderDispoItemCard(item, entry?.id, index, !isLocked)).join('')}</div>
-    <div class="dispo-cell-actions">${expandToggle}${addButton}</div>
+    <div class="dispo-cell-content">
+      <div class="dispo-items">${visibleItems.map((item, index) => renderDispoItemCard(item, entry?.id, index, !isLocked)).join('')}</div>
+      <div class="dispo-cell-actions">${expandToggle}${addButton}</div>
+    </div>
   </div></td>`;
 }
 
