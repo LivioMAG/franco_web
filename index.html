@@ -319,7 +319,7 @@
               <div class="section-heading">
                 <div>
                   <h3>Projekte / Aufträge</h3>
-                  <p>Projekte verwalten und Projektleiter/Bauleiter zuweisen.</p>
+                  <p>Projekte mit Kommissionsnummer und Projektname verwalten.</p>
                 </div>
               </div>
               <div id="projectsAlert" class="alert hidden"></div>
@@ -340,28 +340,12 @@
                     <tr>
                       <th>Kommissionsnummer</th>
                       <th>Projektname</th>
-                      <th>Projektleiter</th>
-                      <th>Bauleiter</th>
-                      <th>Spesen</th>
                       <th>Aktionen</th>
                     </tr>
                   </thead>
                   <tbody id="projectsTableBody"></tbody>
                 </table>
               </div>
-            </div>
-          </section>
-
-          <section id="projectDetailPage" class="page hidden">
-            <div class="panel table-panel">
-              <div class="section-heading">
-                <div>
-                  <h3 id="projectDetailTitle">Projekt</h3>
-                  <p>Projekt-Detailseite (Platzhalter).</p>
-                </div>
-                <button id="backToProjectsButton" class="button button-secondary" type="button">Zurück</button>
-              </div>
-              <p class="subtle-text">Hier folgt die Detailansicht für das ausgewählte Projekt.</p>
             </div>
           </section>
 
@@ -787,7 +771,7 @@
           <div class="section-heading compact">
             <div>
               <h3 id="projectModalTitle">Projekt erfassen</h3>
-              <p>Projekt über ein Popup erfassen oder bearbeiten.</p>
+              <p>Projekt mit Kommissionsnummer und Projektname erfassen oder bearbeiten.</p>
             </div>
             <button id="closeProjectModalButton" class="button button-ghost" type="button">Schliessen</button>
           </div>
@@ -801,18 +785,6 @@
               <label>
                 <span>Projektname *</span>
                 <input id="projectNameInput" type="text" required />
-              </label>
-              <label>
-                <span>Bauleiter *</span>
-                <select id="constructionLeadSelect" required></select>
-              </label>
-              <label>
-                <span>Projektleiter *</span>
-                <select id="projectLeadSelect" required></select>
-              </label>
-              <label class="checkbox-label">
-                <input id="projectExpensesAllowedInput" type="checkbox" checked />
-                <span>Spesen auf Projekt erlaubt</span>
               </label>
             </div>
             <div class="modal-actions">
