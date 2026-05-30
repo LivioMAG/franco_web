@@ -5081,7 +5081,7 @@ function renderProjectsTable() {
     return;
   }
   elements.projectsTableBody.innerHTML = rows.map((project) => {
-    return `<tr>
+    return `<tr class="project-row-static">
       <td>${escapeHtml(project.commission_number || '')}</td>
       <td>${escapeHtml(project.name || '')}</td>
       <td>
@@ -5667,7 +5667,11 @@ function resetProjectForm() {
 
 async function handleProjectsTableClick(event) {
   const button = event.target.closest('button[data-action]');
-  if (!button) return;
+  if (!button) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
   const action = button.dataset.action;
   const projectId = button.dataset.projectId;
   if (action === 'edit-project') {
