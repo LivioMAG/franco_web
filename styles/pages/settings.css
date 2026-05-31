@@ -30,6 +30,36 @@
   grid-area: holidays;
 }
 
+.settings-users-table th:nth-child(6),
+.settings-users-table th:nth-child(7),
+.settings-users-table th:nth-child(8),
+.settings-users-table td:nth-child(6),
+.settings-users-table td:nth-child(7),
+.settings-users-table td:nth-child(8) {
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+  padding-inline: 8px;
+}
+
+.settings-users-table__narrow-heading {
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.settings-users-table__narrow-heading span {
+  display: block;
+}
+
+.settings-users-table input[data-target-revenue-input],
+.settings-users-table input[data-weekly-hours-input],
+.settings-users-table input[data-vacation-allowance-hours-input] {
+  width: 76px;
+  min-width: 0;
+  padding-inline: 8px;
+}
+
 .settings-vacations-card {
   grid-area: vacations;
 }
