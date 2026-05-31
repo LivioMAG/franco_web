@@ -469,7 +469,6 @@ function renderSpecialRequestHoursSummary(summary) {
         <div class="absence-invoice-line deduction">
           <div>
             <span>Wochenarbeitszeit</span>
-            <small>Aus Mitarbeiterprofil</small>
           </div>
           <strong>${escapeHtml(formatSpecialRequestHours(summary.weeklyHours))}</strong>
         </div>
@@ -477,7 +476,6 @@ function renderSpecialRequestHoursSummary(summary) {
         <div class="absence-invoice-line deduction">
           <div>
             <span>Teilzeitabwesenheit pro Woche</span>
-            <small>Aus Special Request Hours</small>
           </div>
           <strong>${escapeHtml(formatSpecialRequestHours(summary.weeklyAbsenceHours))}</strong>
         </div>
@@ -485,7 +483,6 @@ function renderSpecialRequestHoursSummary(summary) {
         <div class="absence-invoice-line result negative">
           <div>
             <span>Arbeitsunfähigkeit</span>
-            <small>Gerundet auf 5%</small>
           </div>
           <strong>${escapeHtml(String(summary.roundedIncapacityPercent))} %</strong>
         </div>
