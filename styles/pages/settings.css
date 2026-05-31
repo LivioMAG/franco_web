@@ -36,28 +36,23 @@
 .settings-users-table td:nth-child(6),
 .settings-users-table td:nth-child(7),
 .settings-users-table td:nth-child(8) {
-  width: 92px;
-  min-width: 92px;
-  max-width: 92px;
-  padding-inline: 8px;
+  width: 116px;
+  min-width: 116px;
+  max-width: 116px;
+  padding-inline: 10px;
 }
 
-.settings-users-table__narrow-heading {
+.settings-users-table__numeric-heading {
   line-height: 1.2;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.settings-users-table__narrow-heading span {
-  display: block;
+  white-space: nowrap;
 }
 
 .settings-users-table input[data-target-revenue-input],
 .settings-users-table input[data-weekly-hours-input],
 .settings-users-table input[data-vacation-allowance-hours-input] {
-  width: 76px;
+  width: 96px;
   min-width: 0;
-  padding-inline: 8px;
+  padding-inline: 10px;
 }
 
 .settings-vacations-card {
