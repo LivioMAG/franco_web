@@ -33,12 +33,12 @@ function drawVisumStamp(pdf, { approverName, approvedAt }) {
   };
 
   pdf.setTextColor(...stampColor);
-  drawStampText('VISIERT', -6.2, { fontSize: 16, fontStyle: 'bold', opacityOffset: 0.12 });
-  drawStampText('VISIERT', -6.2, { fontSize: 16, fontStyle: 'bold' });
-  drawStampText(`Geprüft durch: ${approverName}`, 1.2, { fontSize: 8.2, fontStyle: 'bold', opacityOffset: 0.08 });
-  drawStampText(`Geprüft durch: ${approverName}`, 1.2, { fontSize: 8.2, fontStyle: 'bold' });
-  drawStampText(`Datum: ${approvedAt}`, 6.6, { fontSize: 7.8, opacityOffset: 0.08 });
-  drawStampText(`Datum: ${approvedAt}`, 6.6, { fontSize: 7.8 });
+  drawStampText('VISIERT & GEPRÜFT', -3.6, { fontSize: 13.2, fontStyle: 'bold', opacityOffset: 0.1 });
+  drawStampText('VISIERT & GEPRÜFT', -3.6, { fontSize: 13.2, fontStyle: 'bold' });
+  drawStampText(`durch: ${approverName}`, 1.5, { fontSize: 8.2, fontStyle: 'bold', opacityOffset: 0.07 });
+  drawStampText(`durch: ${approverName}`, 1.5, { fontSize: 8.2, fontStyle: 'bold' });
+  drawStampText(approvedAt, 5.7, { fontSize: 7.8, opacityOffset: 0.07 });
+  drawStampText(approvedAt, 5.7, { fontSize: 7.8 });
   pdf.setTextColor(0, 0, 0);
 }
 
