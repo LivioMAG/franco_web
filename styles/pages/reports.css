@@ -668,3 +668,33 @@
   color: var(--accent);
   font-weight: 700;
 }
+
+.partial-absence-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.partial-absence-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.partial-absence-table th,
+.partial-absence-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.partial-absence-table th:last-child,
+.partial-absence-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.partial-absence-table tfoot th {
+  border-bottom: 0;
+  color: var(--text);
+  background: rgba(17, 17, 17, 0.025);
+}

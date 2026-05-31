@@ -111,8 +111,12 @@ function getPastHolidayRequests() {
 }
 
 function renderPastHolidayActionsCell(request) {
+  const absenceInfoButton = shouldShowAbsenceInfoButton(request)
+    ? renderAbsenceInfoButton(request)
+    : '';
   return `
     <div class="absence-action-buttons">
+      ${absenceInfoButton}
       <button class="button button-small button-secondary button-icon-only" type="button" data-action="download-absence-confirmation" data-request-id="${escapeAttribute(request.id)}" title="PDF herunterladen" aria-label="PDF herunterladen">${renderIconButtonContent('file-down', 'PDF herunterladen')}</button>
       <button class="button button-small button-danger button-icon-only" type="button" data-action="delete-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Absenz entfernen" aria-label="Absenz entfernen" ${state.isSavingAbsence ? 'disabled' : ''}>${renderIconButtonContent('trash-2', 'Absenz entfernen')}</button>
     </div>
@@ -287,6 +291,11 @@ function renderAbsenceInfoModalState() {
     return;
   }
 
+  if (summary.mode === 'special_request_hours') {
+    elements.absenceInfoModalContent.innerHTML = renderSpecialRequestHoursSummary(summary);
+    return;
+  }
+
   const balanceClass = summary.remainingMinutes >= 0 ? 'positive' : 'negative';
   const balancePrefix = summary.remainingMinutes >= 0 ? '+' : '−';
   const pastRange = `01.01.${String(summary.year)} bis ${formatDate(summary.today)}`;
@@ -356,6 +365,13 @@ async function openAbsenceInfoModal(requestId) {
   state.absenceInfoSummary = buildEmptyAbsenceInfoSummary(request);
   renderAbsenceInfoModalState();
 
+  if (isPartialIllnessOrAccidentRequest(request)) {
+    state.absenceInfoSummary = buildSpecialRequestHoursSummary(request);
+    state.isAbsenceInfoLoading = false;
+    renderAbsenceInfoModalState();
+    return;
+  }
+
   try {
     const reports = await fetchAbsenceInfoReports(request);
     if (String(state.absenceInfoRequestId) !== String(requestId)) {
@@ -407,6 +423,210 @@ function buildAbsenceInfoSummary(request, reports) {
   summary.remainingMinutes = summary.allowanceMinutes - summary.totalMinutes;
   summary.reportCount = reports.length;
   return summary;
+}
+
+function buildSpecialRequestHoursSummary(request) {
+  const profile = getProfileById(request.profile_id);
+  const entries = buildSpecialRequestHourEntries(request);
+  const weeklyHours = getProfileWeeklyHours(profile);
+  const weeklyAbsenceHours = getWeeklySpecialRequestHours(request, entries);
+  const rawIncapacityPercent = weeklyHours > 0 ? (weeklyAbsenceHours / weeklyHours) * 100 : 0;
+  const roundedIncapacityPercent = roundToNearestFivePercent(rawIncapacityPercent);
+
+  return {
+    mode: 'special_request_hours',
+    employeeName: profile?.full_name || profile?.email || 'Unbekannt',
+    typeLabel: getAbsenceTypeLabel(request, request.request_type),
+    startDate: request.start_date,
+    endDate: request.end_date,
+    weeklyHours,
+    weeklyAbsenceHours,
+    rawIncapacityPercent,
+    roundedIncapacityPercent,
+    totalHours: entries.reduce((sum, entry) => sum + entry.hours, 0),
+    entries,
+  };
+}
+
+function renderSpecialRequestHoursSummary(summary) {
+  const rows = summary.entries.length
+    ? summary.entries.map((entry) => `
+      <tr>
+        <td>${escapeHtml(entry.date ? formatDateWithWeekday(entry.date) : entry.label)}</td>
+        <td>${escapeHtml(formatSpecialRequestHours(entry.hours))}</td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="2">Keine Teilzeitstunden erfasst.</td></tr>';
+
+  return `
+    <section class="absence-invoice partial-absence-invoice" aria-label="Teilzeitabwesenheit">
+      <header class="absence-invoice-person">
+        <strong>${escapeHtml(summary.employeeName)}</strong>
+        <span>${escapeHtml(summary.typeLabel)} · ${formatDate(summary.startDate)} bis ${formatDate(summary.endDate)}</span>
+      </header>
+
+      <div class="absence-invoice-lines">
+        <div class="absence-invoice-line deduction">
+          <div>
+            <span>Wochenarbeitszeit</span>
+            <small>Aus Mitarbeiterprofil</small>
+          </div>
+          <strong>${escapeHtml(formatSpecialRequestHours(summary.weeklyHours))}</strong>
+        </div>
+
+        <div class="absence-invoice-line deduction">
+          <div>
+            <span>Teilzeitabwesenheit pro Woche</span>
+            <small>Aus Special Request Hours</small>
+          </div>
+          <strong>${escapeHtml(formatSpecialRequestHours(summary.weeklyAbsenceHours))}</strong>
+        </div>
+
+        <div class="absence-invoice-line result negative">
+          <div>
+            <span>Arbeitsunfähigkeit</span>
+            <small>Gerundet auf 5%</small>
+          </div>
+          <strong>${escapeHtml(String(summary.roundedIncapacityPercent))} %</strong>
+        </div>
+      </div>
+
+      <div class="partial-absence-table-wrapper">
+        <table class="partial-absence-table">
+          <thead>
+            <tr>
+              <th>Wann</th>
+              <th>Fehlt</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr>
+              <th>Total im Zeitraum</th>
+              <th>${escapeHtml(formatSpecialRequestHours(summary.totalHours))}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function buildSpecialRequestHourEntries(request) {
+  const specialRequestHours = getSpecialRequestHoursMap(request);
+  if (!specialRequestHours) {
+    return [];
+  }
+
+  const dateEntries = Object.entries(specialRequestHours)
+    .map(([key, value]) => ({ date: String(key), hours: normalizeSpecialRequestHours(value) }))
+    .filter((entry) => isIsoDateString(entry.date) && entry.hours > 0);
+  const weekdayHours = getSpecialRequestWeekdayHours(specialRequestHours);
+  const weekdayEntries = buildSpecialRequestWeekdayEntries(request, weekdayHours);
+
+  const entries = [...dateEntries, ...weekdayEntries];
+  if (entries.length) {
+    return entries.sort((left, right) => String(left.date || left.label).localeCompare(String(right.date || right.label)));
+  }
+
+  return Object.entries(specialRequestHours)
+    .map(([key, value]) => ({ label: String(key), hours: normalizeSpecialRequestHours(value) }))
+    .filter((entry) => entry.hours > 0)
+    .sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function buildSpecialRequestWeekdayEntries(request, weekdayHours) {
+  if (!weekdayHours.size || !isIsoDateString(request.start_date) || !isIsoDateString(request.end_date)) {
+    return [];
+  }
+
+  const entries = [];
+  const cursor = new Date(`${request.start_date}T00:00:00Z`);
+  const endDate = new Date(`${request.end_date}T00:00:00Z`);
+  while (cursor <= endDate) {
+    const dateString = cursor.toISOString().slice(0, 10);
+    const weekdayIndex = getWeekdayIndex(dateString);
+    const hours = weekdayHours.get(weekdayIndex);
+    if (hours > 0) {
+      entries.push({ date: dateString, hours });
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return entries;
+}
+
+function getWeeklySpecialRequestHours(request, entries) {
+  const weekdayHours = getSpecialRequestWeekdayHours(getSpecialRequestHoursMap(request));
+  if (weekdayHours.size) {
+    return [...weekdayHours.values()].reduce((sum, hours) => sum + hours, 0);
+  }
+
+  const weeklyTotals = new Map();
+  entries.forEach((entry) => {
+    if (!entry.date) return;
+    const week = getIsoWeekValueFromDate(new Date(`${entry.date}T00:00:00Z`));
+    weeklyTotals.set(week, (weeklyTotals.get(week) || 0) + entry.hours);
+  });
+  if (!weeklyTotals.size) {
+    return entries.reduce((sum, entry) => sum + entry.hours, 0);
+  }
+  return [...weeklyTotals.values()].reduce((sum, hours) => sum + hours, 0) / weeklyTotals.size;
+}
+
+function getSpecialRequestWeekdayHours(specialRequestHours) {
+  const weekdayHours = new Map();
+  if (!specialRequestHours) {
+    return weekdayHours;
+  }
+
+  Object.entries(specialRequestHours).forEach(([key, value]) => {
+    const weekdayIndex = getWeekdayIndexFromSpecialRequestKey(key);
+    const hours = normalizeSpecialRequestHours(value);
+    if (weekdayIndex !== null && hours > 0) {
+      weekdayHours.set(weekdayIndex, hours);
+    }
+  });
+  return weekdayHours;
+}
+
+function getWeekdayIndexFromSpecialRequestKey(key) {
+  const normalizedKey = normalizeSearchValue(key);
+  const weekdayAliases = {
+    montag: 0, mo: 0, monday: 0,
+    dienstag: 1, di: 1, tuesday: 1,
+    mittwoch: 2, mi: 2, wednesday: 2,
+    donnerstag: 3, do: 3, thursday: 3,
+    freitag: 4, fr: 4, friday: 4,
+    samstag: 5, sa: 5, saturday: 5,
+    sonntag: 6, so: 6, sunday: 6,
+  };
+  return Object.prototype.hasOwnProperty.call(weekdayAliases, normalizedKey) ? weekdayAliases[normalizedKey] : null;
+}
+
+function normalizeSpecialRequestHours(value) {
+  const normalizedValue = typeof value === 'string' ? value.replace(',', '.') : value;
+  const hours = Number(normalizedValue);
+  return Number.isFinite(hours) && hours > 0 ? hours : 0;
+}
+
+function getProfileWeeklyHours(profile) {
+  const weeklyHours = Number(profile?.weekly_hours);
+  return Number.isFinite(weeklyHours) && weeklyHours > 0 ? weeklyHours : 40;
+}
+
+function roundToNearestFivePercent(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.round(value / 5) * 5);
+}
+
+function formatSpecialRequestHours(hours) {
+  return `${Number(hours || 0).toFixed(2)} h`;
+}
+
+function isIsoDateString(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
 }
 
 function getVacationAllowanceMinutes(profile) {
