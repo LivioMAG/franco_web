@@ -1222,8 +1222,8 @@ function renderHolidayRejectCell(request) {
   const rejectButton = isHolidayRequestFullyApproved(request)
     ? ''
     : `<button class="button button-small button-danger absence-icon-button" type="button" data-action="reject-absence-request" data-request-id="${escapeAttribute(request.id)}" title="Absenzgesuch ablehnen" aria-label="Absenzgesuch ablehnen" ${state.isSavingAbsence ? 'disabled' : ''}>${renderIconButtonContent('x', 'Absenzgesuch ablehnen')}</button>`;
-  const absenceInfoButton = isVacationRequest(request)
-    ? `<button class="button button-small button-secondary absence-icon-button" type="button" data-action="show-absence-info" data-request-id="${escapeAttribute(request.id)}" title="Rapportierte Stunden anzeigen" aria-label="Rapportierte Stunden anzeigen">${renderIconButtonContent('info', 'Rapportierte Stunden anzeigen')}</button>`
+  const absenceInfoButton = shouldShowAbsenceInfoButton(request)
+    ? renderAbsenceInfoButton(request)
     : '';
 
   return `
@@ -1232,6 +1232,17 @@ function renderHolidayRejectCell(request) {
       ${rejectButton || '<span class="subtle-text">—</span>'}
     </div>
   `;
+}
+
+function shouldShowAbsenceInfoButton(request) {
+  return isVacationRequest(request) || isPartialIllnessOrAccidentRequest(request);
+}
+
+function renderAbsenceInfoButton(request) {
+  const isPartialAbsence = isPartialIllnessOrAccidentRequest(request);
+  const label = isPartialAbsence ? 'Teilzeitabwesenheit anzeigen' : 'Rapportierte Stunden anzeigen';
+  const iconName = isPartialAbsence ? 'clock-3' : 'info';
+  return `<button class="button button-small button-secondary absence-icon-button" type="button" data-action="show-absence-info" data-request-id="${escapeAttribute(request.id)}" title="${escapeAttribute(label)}" aria-label="${escapeAttribute(label)}">${renderIconButtonContent(iconName, label)}</button>`;
 }
 
 function isVacationRequest(request) {

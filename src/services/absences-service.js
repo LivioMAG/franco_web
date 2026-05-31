@@ -122,6 +122,16 @@ function getSpecialRequestHoursMap(request) {
   return Object.keys(value).length ? value : null;
 }
 
+
+function hasSpecialRequestHours(request) {
+  return Boolean(getSpecialRequestHoursMap(request));
+}
+
+function isPartialIllnessOrAccidentRequest(request) {
+  const typeCode = Number(getAbsenceTypeCode(request));
+  return (typeCode === 2 || typeCode === 4) && hasSpecialRequestHours(request);
+}
+
 function getGermanWeekdayNameFromDateString(dateString) {
   const date = new Date(`${dateString}T00:00:00Z`);
   const weekdayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
