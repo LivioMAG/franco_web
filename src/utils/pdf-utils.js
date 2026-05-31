@@ -673,6 +673,7 @@ function buildWeeklyMatrixRows(reports) {
         dailyMinutes: Array(6).fill(0),
         totalMinutes: 0,
         expenses: 0,
+        lunchExpenses: new Map(),
         otherCosts: 0,
         notes: [],
       });
@@ -690,18 +691,49 @@ function buildWeeklyMatrixRows(reports) {
       : workedHours;
     current.dailyMinutes[dayIndex] += Number(report.total_work_minutes || 0);
     current.totalMinutes += Number(report.total_work_minutes || 0);
-    current.expenses += Number(report.expenses_amount || 0) + Number(report.other_costs_amount || 0);
-    current.otherCosts += Number(report.other_costs_amount || 0);
+    const lunchExpenseAmount = Number(report.expenses_amount || 0);
+    const otherCostsAmount = Number(report.other_costs_amount || 0);
+    current.expenses += lunchExpenseAmount + otherCostsAmount;
+    current.otherCosts += otherCostsAmount;
+    if (lunchExpenseAmount > 0) {
+      const amountKey = lunchExpenseAmount.toFixed(2);
+      const lunchExpense = current.lunchExpenses.get(amountKey) || { amount: lunchExpenseAmount, count: 0 };
+      lunchExpense.count += 1;
+      current.lunchExpenses.set(amountKey, lunchExpense);
+    }
     if (report.notes) current.notes.push(report.notes);
   });
 
   groups.forEach((row) => {
+    const lunchExpenseRemark = buildLunchExpenseRemark(row.lunchExpenses);
+    if (lunchExpenseRemark) {
+      row.notes.push(lunchExpenseRemark);
+    }
     if (row.otherCosts > 0) {
       row.notes.push(`Sonstige Auslagen: ${formatCurrency(row.otherCosts)}`);
     }
   });
 
   return [...groups.values()];
+}
+
+function buildLunchExpenseRemark(lunchExpenses) {
+  const entries = [...(lunchExpenses?.values() || [])];
+  if (!entries.length) {
+    return '';
+  }
+
+  return entries
+    .sort((left, right) => left.amount - right.amount)
+    .map((entry) => `${entry.count}× ${formatFrancAmount(entry.amount)} Franken Mittagsspesen`)
+    .join(' + ');
+}
+
+function formatFrancAmount(value) {
+  return new Intl.NumberFormat('de-CH', {
+    minimumFractionDigits: Number.isInteger(Number(value)) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
 }
 
 function buildAbsenceMatrixRows(reports) {
