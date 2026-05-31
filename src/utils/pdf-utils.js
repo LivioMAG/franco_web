@@ -18,22 +18,28 @@ function getVisumTimestampLabel(date = new Date()) {
 function drawVisumStamp(pdf, { approverName, approvedAt }) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const boxWidth = 82;
-  const boxHeight = 16;
-  const marginRight = 8;
-  const marginBottom = 8;
-  const x = pageWidth - marginRight - boxWidth;
-  const y = pageHeight - marginBottom - boxHeight;
+  const stampColor = [22, 163, 74];
+  const stampCenterX = pageWidth - 47;
+  const stampCenterY = pageHeight - 23;
+  const stampAngle = -12;
 
-  pdf.setFillColor(255, 255, 255);
-  pdf.setDrawColor(180, 180, 180);
-  pdf.setLineWidth(0.3);
-  pdf.roundedRect(x, y, boxWidth, boxHeight, 1.5, 1.5, 'FD');
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(8);
-  pdf.text(`Geprüft durch: ${approverName}`, x + 3, y + 6.2);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text(`Datum: ${approvedAt}`, x + 3, y + 12);
+  const drawStampText = (text, yOffset, { fontSize, fontStyle = 'normal', opacityOffset = 0 } = {}) => {
+    pdf.setFont('helvetica', fontStyle);
+    pdf.setFontSize(fontSize);
+    pdf.text(text, stampCenterX + opacityOffset, stampCenterY + yOffset + opacityOffset, {
+      align: 'center',
+      angle: stampAngle,
+    });
+  };
+
+  pdf.setTextColor(...stampColor);
+  drawStampText('VISIERT', -6.2, { fontSize: 16, fontStyle: 'bold', opacityOffset: 0.12 });
+  drawStampText('VISIERT', -6.2, { fontSize: 16, fontStyle: 'bold' });
+  drawStampText(`Geprüft durch: ${approverName}`, 1.2, { fontSize: 8.2, fontStyle: 'bold', opacityOffset: 0.08 });
+  drawStampText(`Geprüft durch: ${approverName}`, 1.2, { fontSize: 8.2, fontStyle: 'bold' });
+  drawStampText(`Datum: ${approvedAt}`, 6.6, { fontSize: 7.8, opacityOffset: 0.08 });
+  drawStampText(`Datum: ${approvedAt}`, 6.6, { fontSize: 7.8 });
+  pdf.setTextColor(0, 0, 0);
 }
 
 async function exportWeekPdfInternal({ includeVisumStamp = false } = {}) {
