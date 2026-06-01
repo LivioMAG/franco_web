@@ -308,6 +308,21 @@ function matchesReportColumnFilter(report) {
   return true;
 }
 
+function getOpenCommissionFilterOptions(reports = state.weeklyReports) {
+  const commissionsWithOpenReports = new Set();
+
+  reports.forEach((report) => {
+    const commissionNumber = String(report.commission_number || '').trim();
+    if (!commissionNumber || String(report.controll || '').trim()) {
+      return;
+    }
+
+    commissionsWithOpenReports.add(commissionNumber);
+  });
+
+  return [...commissionsWithOpenReports].sort();
+}
+
 function getSortedFilteredReports() {
   return [...getFilteredReports()].sort((a, b) => {
     const dateCompare = `${a.work_date || ''}${a.start_time || ''}`.localeCompare(`${b.work_date || ''}${b.start_time || ''}`);
@@ -1275,7 +1290,7 @@ function openReportsColumnFilter(type) {
     const options = getReportableProfiles().map((p) => ({ value: p.id, label: p.full_name || 'Unbekannt' }));
     content = buildMultiFilterMarkup(type, options, 'Mitarbeiter filtern');
   } else if (type === 'commission') {
-    const values = [...new Set(reports.map((r) => String(r.commission_number || '')).filter(Boolean))].sort();
+    const values = getOpenCommissionFilterOptions(reports);
     content = buildMultiFilterMarkup(type, values.map((v) => ({ value: v, label: v })), 'Kommission filtern');
   } else if (type === 'expenses' || type === 'attachments') {
     const checked = state.reportColumnFilter.type === type;
