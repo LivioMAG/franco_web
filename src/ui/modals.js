@@ -18,6 +18,10 @@ function handleGlobalKeydown(event) {
     closeBulkConfirmModal();
     return;
   }
+  if (elements.specialReportEditModal && !elements.specialReportEditModal.classList.contains('hidden')) {
+    closeSpecialReportEditModal();
+    return;
+  }
   if (!elements.reportEditModal.classList.contains('hidden')) {
     closeReportEditModal();
   }

@@ -10,6 +10,7 @@ function render() {
 
   if (isCheckingAdminAccess) {
     closeReportEditModal();
+    closeSpecialReportEditModal();
     closeAdjustedMinutesModal();
     elements.accessDeniedView.classList.add('hidden');
     elements.loginView.classList.remove('hidden');
@@ -23,6 +24,7 @@ function render() {
 
   if (!hasAdminAccess) {
     closeReportEditModal();
+    closeSpecialReportEditModal();
     closeAdjustedMinutesModal();
     renderLoadingOverlay();
     renderLucideIcons();
@@ -579,9 +581,36 @@ async function handleBulkConfirmSubmit() {
   renderBulkConfirmModalState();
 }
 
+const EDITABLE_SPECIAL_ABSENCE_TYPE_CODES = new Set([1, 2, 3, 4, 6, 7]);
+
+function isEditableSpecialAbsenceReport(report) {
+  return EDITABLE_SPECIAL_ABSENCE_TYPE_CODES.has(Number(report?.abz_typ));
+}
+
+function getEditableSpecialAbsenceOptions() {
+  return ABSENCE_CATEGORY_CONFIG.filter((item) => EDITABLE_SPECIAL_ABSENCE_TYPE_CODES.has(Number(item.typeCode)));
+}
+
+function getEditableSpecialAbsenceLabel(typeCode) {
+  const option = getEditableSpecialAbsenceOptions().find((item) => Number(item.typeCode) === Number(typeCode));
+  return option?.label || 'Absenz';
+}
+
+function renderSpecialReportEditAbsenceTypeOptions(selectedTypeCode) {
+  if (!elements.specialEditAbsenceType) return;
+  elements.specialEditAbsenceType.innerHTML = getEditableSpecialAbsenceOptions()
+    .map((option) => `<option value="${escapeAttribute(option.typeCode)}" ${Number(option.typeCode) === Number(selectedTypeCode) ? 'selected' : ''}>${escapeHtml(option.label)}</option>`)
+    .join('');
+}
+
 function openReportEditModal(reportId) {
   const report = state.weeklyReports.find((item) => String(item.id) === String(reportId));
   if (!report) {
+    return;
+  }
+
+  if (isEditableSpecialAbsenceReport(report)) {
+    openSpecialReportEditModal(report);
     return;
   }
 
@@ -621,6 +650,83 @@ function closeReportEditModal() {
   elements.reportEditForm.reset();
   if (elements.reportEditAttachments) {
     elements.reportEditAttachments.innerHTML = '';
+  }
+}
+
+function openSpecialReportEditModal(report) {
+  const profile = getProfileById(report.profile_id);
+  state.editingReportId = report.id;
+  elements.specialEditReportId.value = report.id;
+  if (elements.specialReportEditContext) {
+    const employeeName = profile?.full_name ?? 'Unbekannt';
+    elements.specialReportEditContext.textContent = `${employeeName} · ${formatDate(report.work_date)} · Absenzart, Stunden und Spesen anpassen.`;
+  }
+  renderSpecialReportEditAbsenceTypeOptions(report.abz_typ);
+  elements.specialEditTotalMinutes.value = Number(report.total_work_minutes || 0);
+  elements.specialEditExpensesAmount.value = Number(report.expenses_amount || 0);
+  elements.specialReportEditModal.classList.remove('hidden');
+}
+
+function closeSpecialReportEditModal() {
+  if (state.editingReportId && elements.specialReportEditModal && !elements.specialReportEditModal.classList.contains('hidden')) {
+    state.editingReportId = null;
+  }
+  if (!elements.specialReportEditModal || !elements.specialReportEditForm) {
+    return;
+  }
+  elements.specialReportEditModal.classList.add('hidden');
+  elements.specialReportEditForm.reset();
+  if (elements.specialEditAbsenceType) {
+    elements.specialEditAbsenceType.innerHTML = '';
+  }
+}
+
+async function handleSpecialReportEditSubmit(event) {
+  event.preventDefault();
+  if (!state.editingReportId || state.isSavingReport) {
+    return;
+  }
+
+  const reportId = state.editingReportId;
+  const existingReport = state.weeklyReports.find((item) => String(item.id) === String(reportId));
+  if (!existingReport || !isEditableSpecialAbsenceReport(existingReport)) {
+    closeSpecialReportEditModal();
+    return;
+  }
+
+  const selectedAbsenceTypeCode = Number(elements.specialEditAbsenceType.value || existingReport.abz_typ);
+  const selectedAbsenceLabel = getEditableSpecialAbsenceLabel(selectedAbsenceTypeCode);
+  const totalWorkMinutes = Math.max(0, Number(elements.specialEditTotalMinutes.value || 0));
+  const updates = {
+    commission_number: selectedAbsenceLabel,
+    project_name: selectedAbsenceLabel,
+    abz_typ: selectedAbsenceTypeCode,
+    start_time: '00:00',
+    end_time: '00:00',
+    lunch_break_minutes: 0,
+    additional_break_minutes: 0,
+    total_work_minutes: totalWorkMinutes,
+    ...buildAdjustedMinutesUpdatePayload(existingReport, totalWorkMinutes),
+    expenses_amount: Number(elements.specialEditExpensesAmount.value || 0),
+  };
+
+  state.isSavingReport = true;
+  try {
+    if (state.isDemoMode) {
+      updateDemoReport(reportId, updates);
+    } else {
+      const { error } = await state.supabase.from('weekly_reports').update(updates).eq('id', reportId);
+      if (error) throw error;
+    }
+
+    await loadData();
+    closeSpecialReportEditModal();
+  } catch (error) {
+    console.error(error);
+    alert(`Spezialrapport konnte nicht aktualisiert werden: ${error.message}`);
+  } finally {
+    state.isSavingReport = false;
+    render();
   }
 }
 
