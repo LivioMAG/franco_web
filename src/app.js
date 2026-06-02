@@ -106,6 +106,15 @@ function cacheElements() {
   elements.editOtherCostsAmount = document.getElementById('editOtherCostsAmount');
   elements.editNotes = document.getElementById('editNotes');
   elements.reportEditAttachments = document.getElementById('reportEditAttachments');
+  elements.specialReportEditModal = document.getElementById('specialReportEditModal');
+  elements.specialReportEditForm = document.getElementById('specialReportEditForm');
+  elements.closeSpecialReportEditModalButton = document.getElementById('closeSpecialReportEditModalButton');
+  elements.cancelSpecialReportEditButton = document.getElementById('cancelSpecialReportEditButton');
+  elements.specialReportEditContext = document.getElementById('specialReportEditContext');
+  elements.specialEditReportId = document.getElementById('specialEditReportId');
+  elements.specialEditAbsenceType = document.getElementById('specialEditAbsenceType');
+  elements.specialEditTotalMinutes = document.getElementById('specialEditTotalMinutes');
+  elements.specialEditExpensesAmount = document.getElementById('specialEditExpensesAmount');
   elements.adjustedMinutesModal = document.getElementById('adjustedMinutesModal');
   elements.adjustedMinutesForm = document.getElementById('adjustedMinutesForm');
   elements.adjustedReportId = document.getElementById('adjustedReportId');
@@ -270,6 +279,9 @@ function bindEvents() {
   elements.closeReportEditModalButton.addEventListener('click', closeReportEditModal);
   elements.cancelReportEditButton.addEventListener('click', closeReportEditModal);
   elements.reportEditForm.addEventListener('submit', handleReportEditSubmit);
+  elements.closeSpecialReportEditModalButton.addEventListener('click', closeSpecialReportEditModal);
+  elements.cancelSpecialReportEditButton.addEventListener('click', closeSpecialReportEditModal);
+  elements.specialReportEditForm.addEventListener('submit', handleSpecialReportEditSubmit);
   elements.editStartTime.addEventListener('change', syncEditedWorkMinutesWithTimeRange);
   elements.editEndTime.addEventListener('change', syncEditedWorkMinutesWithTimeRange);
   elements.editStartTime.addEventListener('input', syncEditedWorkMinutesWithTimeRange);
@@ -280,6 +292,11 @@ function bindEvents() {
   elements.reportEditModal.addEventListener('click', (event) => {
     if (event.target?.dataset?.closeModal === 'true') {
       closeReportEditModal();
+    }
+  });
+  elements.specialReportEditModal.addEventListener('click', (event) => {
+    if (event.target?.dataset?.closeSpecialReportModal === 'true') {
+      closeSpecialReportEditModal();
     }
   });
   elements.closeAdjustedMinutesModalButton.addEventListener('click', closeAdjustedMinutesModal);
