@@ -704,3 +704,107 @@
   color: var(--text);
   background: rgba(17, 17, 17, 0.025);
 }
+
+.absence-control-button {
+  align-self: end;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.absence-control-modal-card {
+  width: min(980px, calc(100vw - 32px));
+}
+
+.absence-control-heading {
+  align-items: flex-start;
+}
+
+.absence-control-content {
+  display: grid;
+  gap: 16px;
+}
+
+.absence-control-summary {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(17, 17, 17, 0.04);
+}
+
+.absence-control-list {
+  display: grid;
+  gap: 14px;
+}
+
+.absence-control-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.absence-control-card-heading,
+.absence-control-ratio-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.absence-control-bars {
+  display: grid;
+  gap: 10px;
+}
+
+.absence-control-ratio-row {
+  display: grid;
+  gap: 6px;
+}
+
+.absence-control-ratio-meta {
+  font-size: 0.9rem;
+}
+
+.absence-control-bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.08);
+}
+
+.absence-control-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--muted);
+}
+
+.absence-control-ratio-row.illness .absence-control-bar span {
+  background: #d70015;
+}
+
+.absence-control-ratio-row.accident .absence-control-bar span {
+  background: #f97316;
+}
+
+.absence-control-ratio-row.other-absence .absence-control-bar span {
+  background: #7c3aed;
+}
+
+.absence-control-ratio-row.remaining .absence-control-bar span {
+  background: #137333;
+}
+
+.absence-control-breakdown {
+  padding-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .absence-control-card-heading,
+  .absence-control-ratio-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

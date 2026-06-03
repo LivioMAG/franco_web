@@ -121,6 +121,7 @@ function resetAppState() {
   state.projectSearchQuery = '';
   state.editingProjectId = null;
   state.showControlledReports = false;
+  state.isAbsenceControlModalOpen = false;
   state.absenceFilterQuery = '';
   state.selectedAbsenceEmployeeIds = [];
   state.absenceSelectionInitialized = false;
