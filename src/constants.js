@@ -746,6 +746,7 @@ const state = {
   reportColumnFilter: { type: 'none', values: [] },
   reportsSortMode: 'date_desc',
   showControlledReports: false,
+  isAbsenceControlModalOpen: false,
   absenceFilterQuery: '',
   selectedAbsenceEmployeeIds: [],
   absenceSelectionInitialized: false,

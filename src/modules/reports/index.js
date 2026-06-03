@@ -12,6 +12,7 @@ function render() {
     closeReportEditModal();
     closeSpecialReportEditModal();
     closeAdjustedMinutesModal();
+    closeAbsenceControlModal({ renderStateOnly: true });
     elements.accessDeniedView.classList.add('hidden');
     elements.loginView.classList.remove('hidden');
     if (elements.loginAlert) {
@@ -26,6 +27,7 @@ function render() {
     closeReportEditModal();
     closeSpecialReportEditModal();
     closeAdjustedMinutesModal();
+    closeAbsenceControlModal({ renderStateOnly: true });
     renderLoadingOverlay();
     renderLucideIcons();
     return;
@@ -39,6 +41,7 @@ function render() {
   renderAbsenceFilters();
   renderReportsTable();
   renderSubmissionLists();
+  renderAbsenceControlModalState();
   renderMissingReportsCallModalState();
   renderAbsenceTable();
   renderBulkConfirmModalState();
@@ -271,6 +274,167 @@ function handleReportsSortChange(event) {
   state.reportsSortMode = event.target?.value || 'date_desc';
   state.reportsPage = 1;
   renderReportsTable();
+}
+
+function openAbsenceControlModal() {
+  state.isAbsenceControlModalOpen = true;
+  renderAbsenceControlModalState();
+}
+
+function closeAbsenceControlModal({ renderStateOnly = false } = {}) {
+  state.isAbsenceControlModalOpen = false;
+  if (renderStateOnly) {
+    elements.absenceControlModal?.classList.add('hidden');
+    return;
+  }
+
+  renderAbsenceControlModalState();
+}
+
+function renderAbsenceControlModalState() {
+  if (!elements.absenceControlModal) {
+    return;
+  }
+
+  elements.absenceControlModal.classList.toggle('hidden', !state.isAbsenceControlModalOpen);
+  if (!state.isAbsenceControlModalOpen || !elements.absenceControlModalContent) {
+    return;
+  }
+
+  const summaries = getAbsenceControlSummaries();
+  elements.absenceControlModalContent.innerHTML = renderAbsenceControlContent(summaries);
+}
+
+function getAbsenceControlSummaries() {
+  const reportsByProfile = groupReportsByProfile(state.weeklyReports);
+
+  return [...reportsByProfile.entries()]
+    .map(([profileId, reports]) => {
+      const profile = getProfileById(profileId);
+      const buckets = reports.reduce((totals, report) => {
+        const minutes = getAbsenceControlReportMinutes(report);
+        if (minutes <= 0) {
+          return totals;
+        }
+
+        const typeCode = Number(getAbsenceTypeCode(report));
+        if (typeCode === 2) {
+          totals.illnessMinutes += minutes;
+        } else if (typeCode === 4) {
+          totals.accidentMinutes += minutes;
+        } else if (typeCode > 0) {
+          totals.otherAbsenceMinutes += minutes;
+          const label = getAbsenceTypeLabel(report, 'Absenz');
+          totals.otherAbsenceBreakdown.set(label, (totals.otherAbsenceBreakdown.get(label) || 0) + minutes);
+        } else {
+          totals.remainingMinutes += minutes;
+        }
+
+        totals.totalMinutes += minutes;
+        return totals;
+      }, {
+        illnessMinutes: 0,
+        accidentMinutes: 0,
+        otherAbsenceMinutes: 0,
+        remainingMinutes: 0,
+        totalMinutes: 0,
+        otherAbsenceBreakdown: new Map(),
+      });
+
+      return {
+        profile,
+        profileName: profile?.full_name || 'Unbekannt',
+        ...buckets,
+        sicknessAccidentMinutes: buckets.illnessMinutes + buckets.accidentMinutes,
+      };
+    })
+    .filter((summary) => summary.sicknessAccidentMinutes > 0)
+    .sort((left, right) => left.profileName.localeCompare(right.profileName, 'de'));
+}
+
+function getAbsenceControlReportMinutes(report) {
+  if (isAbsenceReport(report)) {
+    return getAbsenceMinutes(report);
+  }
+
+  return getAdjustedWorkMinutes(report);
+}
+
+function renderAbsenceControlContent(summaries) {
+  if (state.isLoadingData) {
+    return `<p class="empty-state">Auswertung für ${escapeHtml(getWeekLabel(state.selectedWeek))} wird geladen …</p>`;
+  }
+
+  if (!summaries.length) {
+    return `<p class="empty-state">In ${escapeHtml(getWeekLabel(state.selectedWeek))} wurden keine Rapporte mit Krankheit oder Unfall gefunden.</p>`;
+  }
+
+  return `
+    <div class="absence-control-summary subtle-text">
+      ${escapeHtml(getWeekLabel(state.selectedWeek))}: ${summaries.length} Mitarbeiter mit Krankheit oder Unfall.
+    </div>
+    <div class="absence-control-list">
+      ${summaries.map(renderAbsenceControlEmployeeCard).join('')}
+    </div>
+  `;
+}
+
+function renderAbsenceControlEmployeeCard(summary) {
+  const totalMinutes = Math.max(0, summary.totalMinutes || 0);
+  const rows = [
+    { label: 'Krankheit', minutes: summary.illnessMinutes, className: 'illness' },
+    { label: 'Unfall', minutes: summary.accidentMinutes, className: 'accident' },
+    { label: 'Weitere Absenzen', minutes: summary.otherAbsenceMinutes, className: 'other-absence' },
+    { label: 'Rest', minutes: summary.remainingMinutes, className: 'remaining' },
+  ].filter((row) => row.minutes > 0 || row.className !== 'other-absence');
+
+  const otherBreakdown = [...summary.otherAbsenceBreakdown.entries()]
+    .sort(([leftLabel], [rightLabel]) => leftLabel.localeCompare(rightLabel, 'de'))
+    .map(([label, minutes]) => `${escapeHtml(label)}: ${formatMinutes(minutes)} (${formatAbsenceControlPercent(minutes, totalMinutes)})`)
+    .join(' · ');
+
+  return `
+    <article class="absence-control-card">
+      <div class="absence-control-card-heading">
+        <div>
+          <strong>${escapeHtml(summary.profileName)}</strong>
+          <div class="subtle-text">Total rapportierte Stunden: ${formatMinutes(totalMinutes)}</div>
+        </div>
+        <span class="pill warning">Krankheit/Unfall ${formatAbsenceControlPercent(summary.sicknessAccidentMinutes, totalMinutes)}</span>
+      </div>
+      <div class="absence-control-bars" role="list">
+        ${rows.map((row) => renderAbsenceControlRatioRow(row, totalMinutes)).join('')}
+      </div>
+      ${otherBreakdown ? `<div class="absence-control-breakdown subtle-text">${otherBreakdown}</div>` : ''}
+    </article>
+  `;
+}
+
+function renderAbsenceControlRatioRow(row, totalMinutes) {
+  const percent = getAbsenceControlPercentValue(row.minutes, totalMinutes);
+  return `
+    <div class="absence-control-ratio-row ${escapeAttribute(row.className)}" role="listitem">
+      <div class="absence-control-ratio-meta">
+        <span>${escapeHtml(row.label)}</span>
+        <strong>${formatMinutes(row.minutes)} · ${formatAbsenceControlPercent(row.minutes, totalMinutes)}</strong>
+      </div>
+      <div class="absence-control-bar" aria-hidden="true">
+        <span style="width: ${escapeAttribute(String(percent))}%;"></span>
+      </div>
+    </div>
+  `;
+}
+
+function getAbsenceControlPercentValue(minutes, totalMinutes) {
+  if (!totalMinutes) {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, (minutes / totalMinutes) * 100));
+}
+
+function formatAbsenceControlPercent(minutes, totalMinutes) {
+  return `${getAbsenceControlPercentValue(minutes, totalMinutes).toFixed(1)}%`;
 }
 
 

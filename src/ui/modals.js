@@ -14,6 +14,10 @@ function handleGlobalKeydown(event) {
     closeProjectModal();
     return;
   }
+  if (elements.absenceControlModal && !elements.absenceControlModal.classList.contains('hidden')) {
+    closeAbsenceControlModal();
+    return;
+  }
   if (elements.bulkConfirmModal && !elements.bulkConfirmModal.classList.contains('hidden')) {
     closeBulkConfirmModal();
     return;
