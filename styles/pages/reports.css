@@ -808,3 +808,55 @@
     flex-direction: column;
   }
 }
+
+.absence-control-ratio-row.holiday .absence-control-bar span {
+  background: #0891b2;
+}
+
+.absence-control-ratio-row.vacation .absence-control-bar span {
+  background: #2563eb;
+}
+
+.absence-control-confirmations {
+  display: grid;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.absence-control-confirmation {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: rgba(17, 17, 17, 0.025);
+}
+
+.absence-control-confirmation.positive {
+  border-color: rgba(19, 115, 51, 0.22);
+  background: rgba(19, 115, 51, 0.06);
+}
+
+.absence-control-confirmation.negative {
+  border-color: rgba(215, 0, 21, 0.2);
+  background: rgba(215, 0, 21, 0.05);
+}
+
+.absence-control-confirmation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.absence-control-confirmation-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: baseline;
+  font-size: 0.9rem;
+}
+
+.absence-control-confirmation-detail small {
+  color: var(--muted);
+}
