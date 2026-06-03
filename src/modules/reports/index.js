@@ -316,16 +316,25 @@ function renderHolidayControlButtonState() {
   }
 
   const summary = getHolidayControlSummary();
-  const shouldShow = !state.isLoadingData && summary.shouldShowButton;
+  const hasMissingReports = summary.missingHolidayPeople.length > 0;
   const hasInvalidReports = summary.invalidHolidayReports.length > 0;
-  const title = hasInvalidReports
-    ? 'Feiertagskontrolle: rapportierte Feiertage ohne Plattform-Feiertag'
-    : 'Feiertagskontrolle öffnen';
+  const hasHolidayControlIssues = hasMissingReports || hasInvalidReports;
+  const shouldShow = !state.isLoadingData && hasHolidayControlIssues;
+  let title = 'Feiertagskontrolle: fehlende Feiertagsrapporte';
+  if (hasInvalidReports && hasMissingReports) {
+    title = 'Feiertagskontrolle: fehlende und falsch rapportierte Feiertage';
+  } else if (hasInvalidReports) {
+    title = 'Feiertagskontrolle: rapportierte Feiertage ohne Plattform-Feiertag';
+  }
 
   elements.holidayControlButton.classList.toggle('hidden', !shouldShow);
-  elements.holidayControlButton.classList.toggle('is-alert', shouldShow && hasInvalidReports);
+  elements.holidayControlButton.classList.toggle('is-alert', shouldShow);
   elements.holidayControlButton.setAttribute('title', title);
   elements.holidayControlButton.setAttribute('aria-label', title);
+
+  if (!shouldShow && state.isHolidayControlModalOpen) {
+    closeHolidayControlModal({ renderStateOnly: true });
+  }
 }
 
 function renderHolidayControlModalState() {
@@ -375,7 +384,6 @@ function getHolidayControlSummary() {
     invalidHolidayReports,
     reportedHolidayPeople: buildHolidayControlReportedPeople(holidayReports),
     missingHolidayPeople: hasPlatformHoliday ? buildHolidayControlMissingPeople(weekPlatformHolidays, holidayReports) : [],
-    shouldShowButton: hasPlatformHoliday || holidayReports.length > 0,
   };
 }
 
