@@ -602,12 +602,16 @@ function buildConfirmedAbsenceCheck(profileId, reports, typeCode, label) {
     .map((report) => String(report.work_date || ''))
     .filter(Boolean);
   const confirmedRequests = getConfirmedAbsenceRequestsForReports(profileId, typeCode, matchingDates);
+  const uncoveredReports = matchingReports
+    .filter((report) => !isReportCoveredByConfirmedAbsenceRequests(report, confirmedRequests));
+  const certificateChecks = buildMedicalCertificateChecks(uncoveredReports);
 
   return {
     label,
     reportMinutes: matchingReports.reduce((sum, report) => sum + getAbsenceControlReportMinutes(report), 0),
     confirmedRequests,
     hasConfirmedAbsence: confirmedRequests.length > 0,
+    certificateChecks,
   };
 }
 
@@ -624,6 +628,89 @@ function getConfirmedAbsenceRequestsForReports(profileId, typeCode, reportDates)
     .filter((request) => uniqueDates.some((workDate) => isDateWithinAbsenceRequest(workDate, request)))
     .map((request) => buildConfirmedAbsenceRequestControlInfo(request))
     .sort((left, right) => String(left.startDate || '').localeCompare(String(right.startDate || '')));
+}
+
+function isReportCoveredByConfirmedAbsenceRequests(report, confirmedRequests) {
+  const workDate = String(report?.work_date || '');
+  if (!workDate || !Array.isArray(confirmedRequests) || !confirmedRequests.length) {
+    return false;
+  }
+
+  return confirmedRequests.some((request) =>
+    workDate >= String(request.startDate || '') && workDate <= String(request.endDate || '')
+  );
+}
+
+function buildMedicalCertificateChecks(reports) {
+  const streaks = getConsecutiveAbsenceReportStreaks(reports);
+  return streaks
+    .filter((streak) => streak.days >= 2)
+    .map((streak) => {
+      const attachments = collectReportAttachments(streak.reports);
+      return {
+        startDate: streak.reports[0]?.work_date || '',
+        endDate: streak.reports[streak.reports.length - 1]?.work_date || '',
+        days: streak.days,
+        attachments,
+        hasAttachment: attachments.length > 0,
+      };
+    });
+}
+
+function getConsecutiveAbsenceReportStreaks(reports) {
+  const reportGroupsByDate = reports
+    .filter((report) => String(report?.work_date || ''))
+    .reduce((groups, report) => {
+      const workDate = String(report.work_date || '');
+      if (!groups.has(workDate)) {
+        groups.set(workDate, []);
+      }
+      groups.get(workDate).push(report);
+      return groups;
+    }, new Map());
+  const dateGroups = [...reportGroupsByDate.entries()]
+    .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
+    .map(([date, groupedReports]) => ({ date, reports: groupedReports }));
+  const streaks = [];
+  let currentStreak = [];
+
+  dateGroups.forEach((dateGroup) => {
+    const previousGroup = currentStreak[currentStreak.length - 1];
+    if (!previousGroup || isNextCalendarDay(previousGroup.date, dateGroup.date)) {
+      currentStreak.push(dateGroup);
+      return;
+    }
+
+    streaks.push({
+      days: currentStreak.length,
+      reports: currentStreak.flatMap((group) => group.reports),
+    });
+    currentStreak = [dateGroup];
+  });
+
+  if (currentStreak.length) {
+    streaks.push({
+      days: currentStreak.length,
+      reports: currentStreak.flatMap((group) => group.reports),
+    });
+  }
+
+  return streaks;
+}
+
+function isNextCalendarDay(previousDateString, nextDateString) {
+  const previousDate = new Date(`${previousDateString}T00:00:00Z`);
+  const nextDate = new Date(`${nextDateString}T00:00:00Z`);
+  if (Number.isNaN(previousDate.getTime()) || Number.isNaN(nextDate.getTime())) {
+    return false;
+  }
+
+  previousDate.setUTCDate(previousDate.getUTCDate() + 1);
+  return previousDate.toISOString().slice(0, 10) === String(nextDateString || '');
+}
+
+function collectReportAttachments(reports) {
+  return reports.flatMap((report) => Array.isArray(report.attachments) ? report.attachments : []);
 }
 
 function buildConfirmedAbsenceRequestControlInfo(request) {
@@ -646,6 +733,7 @@ function buildConfirmedAbsenceRequestControlInfo(request) {
     rawIncapacityPercent,
     incapacityPercent: specialRequestHours ? roundAbsenceControlPercent(rawIncapacityPercent) : 100,
     isFullIncapacity: !specialRequestHours,
+    attachments: Array.isArray(request.attachments) ? request.attachments : [],
   };
 }
 
@@ -810,6 +898,7 @@ function renderConfirmedAbsenceCheck(check) {
   const requestDetails = check.confirmedRequests.length
     ? check.confirmedRequests.map((request) => renderConfirmedAbsenceRequestDetail(request)).join('')
     : '';
+  const certificateDetails = renderMedicalCertificateChecks(check.certificateChecks);
 
   return `
     <div class="absence-control-confirmation ${escapeAttribute(statusClass)}">
@@ -819,6 +908,7 @@ function renderConfirmedAbsenceCheck(check) {
       </div>
       <div class="subtle-text">Rapportiert: ${formatMinutes(check.reportMinutes)}</div>
       ${requestDetails}
+      ${certificateDetails}
     </div>
   `;
 }
@@ -828,11 +918,52 @@ function renderConfirmedAbsenceRequestDetail(request) {
   const hoursLabel = request.isFullIncapacity
     ? ''
     : `${formatAbsenceControlHours(request.weeklyAbsenceHours)} von ${formatAbsenceControlHours(request.weeklyHours)} pro Woche`;
+  const attachments = renderAbsenceControlAttachments(request.attachments);
   return `
     <div class="absence-control-confirmation-detail">
       <span>Bestätigte Absenz: ${formatDate(request.startDate)} bis ${formatDate(request.endDate)}</span>
       <strong>Arbeitsunfähigkeit ${escapeHtml(percentLabel)}</strong>
       ${hoursLabel ? `<small>${escapeHtml(hoursLabel)}</small>` : ''}
+      ${attachments ? `<small>Anhang: ${attachments}</small>` : ''}
+    </div>
+  `;
+}
+
+function renderAbsenceControlAttachments(attachments) {
+  if (!Array.isArray(attachments) || !attachments.length) {
+    return '';
+  }
+
+  return renderAttachmentLinks(attachments);
+}
+
+function renderMedicalCertificateChecks(checks) {
+  if (!Array.isArray(checks) || !checks.length) {
+    return '';
+  }
+
+  return `
+    <div class="absence-control-certificate-checks">
+      ${checks.map((check) => renderMedicalCertificateCheck(check)).join('')}
+    </div>
+  `;
+}
+
+function renderMedicalCertificateCheck(check) {
+  const dateLabel = check.startDate === check.endDate
+    ? formatDate(check.startDate)
+    : `${formatDate(check.startDate)} bis ${formatDate(check.endDate)}`;
+  const attachmentLinks = renderAbsenceControlAttachments(check.attachments);
+  const message = check.hasAttachment
+    ? 'Muss geprüft werden: Anhang vorhanden – OK.'
+    : 'Arztzeugnis fehlt.';
+  const statusClass = check.hasAttachment ? 'positive' : 'negative';
+
+  return `
+    <div class="absence-control-confirmation-detail ${escapeAttribute(statusClass)}">
+      <span>${escapeHtml(dateLabel)} · ${check.days} Tage am Stück ohne vorgängig bestätigte Absenz</span>
+      <strong>${escapeHtml(message)}</strong>
+      ${attachmentLinks ? `<small>Anhang: ${attachmentLinks}</small>` : ''}
     </div>
   `;
 }
