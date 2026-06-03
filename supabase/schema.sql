@@ -38,6 +38,10 @@ create table if not exists public.app_profiles (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+update public.app_profiles
+set role_label = 'Temporär'
+where lower(btrim(role_label)) = 'temporär';
+
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
   commission_number text not null,

@@ -157,6 +157,10 @@ add column if not exists block_schedule jsonb not null default '[]'::jsonb;
 alter table public.app_profiles
 add column if not exists is_active boolean not null default true;
 
+update public.app_profiles
+set role_label = 'Temporär'
+where lower(btrim(role_label)) = 'temporär';
+
 alter table public.weekly_reports
 add column if not exists project_name text;
 
