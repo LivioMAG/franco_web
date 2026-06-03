@@ -236,11 +236,7 @@ async function loadData() {
       .order('work_date', { ascending: true });
 
     const profilesQuery = fetchProfiles();
-    const absencesQuery = state.supabase
-      .from('holiday_requests')
-      .select('*')
-      .order('start_date', { ascending: false })
-      .limit(200);
+    const absencesQuery = fetchHolidayRequests();
     const projectsQuery = state.supabase
       .from('projects')
       .select('*')
@@ -349,6 +345,30 @@ async function fetchProfiles() {
     return primary;
   }
   return state.supabase.from('app_profiles').select('*').order('full_name', { ascending: true });
+}
+
+async function fetchHolidayRequests() {
+  const pageSize = 1000;
+  const rows = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1;
+    const { data, error } = await state.supabase
+      .from('holiday_requests')
+      .select('*')
+      .order('start_date', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    rows.push(...(data ?? []));
+
+    if (!data || data.length < pageSize) {
+      return { data: rows, error: null };
+    }
+  }
 }
 
 async function loadDemoData() {
