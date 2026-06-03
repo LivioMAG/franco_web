@@ -773,6 +773,7 @@ const state = {
   reportsPage: 1,
   reportsPerPage: 20,
   editingReportId: null,
+  isCreatingReport: false,
   editingReportPauseMinutes: 0,
   isSavingReport: false,
   isDemoMode: false,

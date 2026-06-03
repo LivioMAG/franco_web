@@ -133,6 +133,7 @@
                   <span id="reportStatusIcon" class="report-status-icon" aria-hidden="true">0</span>
                   <span id="reportStatusText">fehlende Wochenrapporte</span>
                 </button>
+                <button id="openReportCreateButton" class="button button-primary button-icon" type="button" title="Rapport erstellen" aria-label="Rapport erstellen"><i data-lucide="plus" aria-hidden="true"></i></button>
                 <button id="exportPdfButton" class="button button-primary button-icon" type="button" title="PDF exportieren" aria-label="PDF exportieren"><i data-lucide="file-down" aria-hidden="true"></i></button>
                 <button id="exportPdfWithVisumButton" class="button button-secondary button-icon" type="button" title="PDF mit Visum exportieren" aria-label="PDF mit Visum exportieren"><i data-lucide="badge-check" aria-hidden="true"></i></button>
               </div>
@@ -555,7 +556,7 @@
           <div class="section-heading compact">
             <div>
               <h3 id="reportEditTitle">Rapport bearbeiten</h3>
-              <p>Bestehende Rapporte können hier kontrolliert und angepasst werden.</p>
+              <p id="reportEditDescription">Bestehende Rapporte können hier kontrolliert und angepasst werden.</p>
             </div>
             <button id="closeReportEditModalButton" class="button button-ghost" type="button">Schliessen</button>
           </div>
@@ -563,9 +564,13 @@
           <form id="reportEditForm" class="report-edit-form">
             <input id="editReportId" type="hidden" />
             <div class="report-edit-grid">
-              <label>
+              <label id="editEmployeeNameField">
                 <span>Mitarbeiter</span>
                 <input id="editEmployeeName" type="text" readonly />
+              </label>
+              <label id="createReportProfileField" class="hidden">
+                <span>Mitarbeiter</span>
+                <select id="createReportProfileSelect"></select>
               </label>
               <label>
                 <span>Datum</span>
@@ -614,7 +619,7 @@
             </div>
             <div class="modal-actions">
               <button class="button button-secondary" type="button" id="cancelReportEditButton">Abbrechen</button>
-              <button class="button button-primary" type="submit">Änderungen speichern</button>
+              <button id="saveReportEditButton" class="button button-primary" type="submit">Änderungen speichern</button>
             </div>
           </form>
         </div>
