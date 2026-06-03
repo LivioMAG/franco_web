@@ -880,3 +880,23 @@
 .absence-control-confirmation-detail small {
   color: var(--muted);
 }
+
+.absence-control-certificate-checks {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.absence-control-confirmation-detail.positive strong {
+  color: var(--success);
+}
+
+.absence-control-confirmation-detail.negative strong {
+  color: var(--accent);
+}
+
+.absence-control-confirmation-detail .attachment-list {
+  display: inline-grid;
+  gap: 4px;
+  vertical-align: top;
+}
