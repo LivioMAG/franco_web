@@ -71,15 +71,8 @@ function getMatchingProfiles(profiles, query) {
 
 function getFilteredHolidayRequests() {
   return [...state.holidayRequests]
-    .filter((request) => {
-      const status = getHolidayRequestApprovalStatus(request);
-      return status === 1 || status === 2;
-    })
-    .sort((a, b) => {
-      const approvalCompare = Number(isHolidayRequestFullyApproved(a)) - Number(isHolidayRequestFullyApproved(b));
-      if (approvalCompare !== 0) return approvalCompare;
-      return `${b.start_date}`.localeCompare(`${a.start_date}`);
-    });
+    .filter((request) => getHolidayRequestApprovalStatus(request) === 1)
+    .sort((a, b) => `${b.start_date}`.localeCompare(`${a.start_date}`));
 }
 
 function groupReportsByProfile(reports) {

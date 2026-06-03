@@ -35,10 +35,10 @@ function renderAbsenceTable() {
 
   renderAbsencesViewState();
 
-  const rows = state.showPastAbsences ? getPastHolidayRequests() : getFilteredHolidayRequests();
+  const rows = state.showPastAbsences ? getApprovedHolidayRequests() : getFilteredHolidayRequests();
   const emptyLabel = state.showPastAbsences
-    ? 'Keine vergangenen Ferien- oder Absenzanträge gefunden.'
-    : 'Keine Ferien- oder Absenzanträge gefunden.';
+    ? 'Keine bestätigten Ferien- oder Absenzanträge gefunden.'
+    : 'Keine offenen Ferien- oder Absenzanträge gefunden.';
 
   if (!rows.length) {
     elements.absencesTableBody.innerHTML = `<tr><td colspan="10">${emptyLabel}</td></tr>`;
@@ -56,16 +56,16 @@ function renderAbsencesViewState() {
   const isPastView = Boolean(state.showPastAbsences);
   if (elements.absencesPanelTitle) {
     elements.absencesPanelTitle.textContent = isPastView
-      ? 'Vergangene Ferien- und Absenzanträge'
-      : 'Ferien- und Absenzanträge';
+      ? 'Bestätigte Ferien- und Absenzanträge'
+      : 'Offene Ferien- und Absenzanträge';
   }
   if (elements.togglePastAbsencesButton) {
     elements.togglePastAbsencesButton.innerHTML = isPastView
-      ? renderIconButtonContent('calendar-clock', 'Aktuelle Absenzen')
-      : renderIconButtonContent('history', 'Vergangene Absenzen');
+      ? renderIconButtonContent('calendar-clock', 'Offene Absenzen')
+      : renderIconButtonContent('history', 'Bestätigte Absenzen');
     const title = isPastView
-      ? 'Aktuelle Ferien- und Absenzanträge anzeigen'
-      : 'Vergangene Ferien- und Absenzanträge anzeigen';
+      ? 'Offene Ferien- und Absenzanträge anzeigen'
+      : 'Bestätigte Ferien- und Absenzanträge anzeigen';
     elements.togglePastAbsencesButton.setAttribute('aria-label', title);
     elements.togglePastAbsencesButton.setAttribute('title', title);
   }
@@ -96,16 +96,12 @@ function togglePastAbsencesView() {
   renderAbsenceTable();
 }
 
-function getPastHolidayRequests() {
-  const today = getTodayIsoDate();
+function getApprovedHolidayRequests() {
   return [...state.holidayRequests]
-    .filter((request) => {
-      const status = getHolidayRequestApprovalStatus(request);
-      return (status === 0 || status === 2) && String(request.end_date || '') < today;
-    })
+    .filter((request) => getHolidayRequestApprovalStatus(request) === 2)
     .sort((a, b) => {
-      const endCompare = String(b.end_date || '').localeCompare(String(a.end_date || ''));
-      if (endCompare !== 0) return endCompare;
+      const startCompare = String(b.start_date || '').localeCompare(String(a.start_date || ''));
+      if (startCompare !== 0) return startCompare;
       return String(b.created_at || '').localeCompare(String(a.created_at || ''));
     });
 }
@@ -796,7 +792,7 @@ async function handleDeleteHolidayRequest(requestId) {
     return;
   }
 
-  const shouldDelete = window.confirm('Soll dieses vergangene Absenzgesuch wirklich entfernt werden?');
+  const shouldDelete = window.confirm('Soll dieses bestätigte Absenzgesuch wirklich entfernt werden?');
   if (!shouldDelete) {
     return;
   }
