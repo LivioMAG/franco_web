@@ -45,6 +45,7 @@ function cacheElements() {
   elements.exportPdfButton = document.getElementById('exportPdfButton');
   elements.exportPdfWithVisumButton = document.getElementById('exportPdfWithVisumButton');
   elements.reportStatusButton = document.getElementById('reportStatusButton');
+  elements.openReportCreateButton = document.getElementById('openReportCreateButton');
   elements.reportStatusIcon = document.getElementById('reportStatusIcon');
   elements.reportStatusText = document.getElementById('reportStatusText');
   elements.logoutButton = document.getElementById('logoutButton');
@@ -102,7 +103,12 @@ function cacheElements() {
   elements.closeReportEditModalButton = document.getElementById('closeReportEditModalButton');
   elements.cancelReportEditButton = document.getElementById('cancelReportEditButton');
   elements.editReportId = document.getElementById('editReportId');
+  elements.reportEditTitle = document.getElementById('reportEditTitle');
+  elements.reportEditDescription = document.getElementById('reportEditDescription');
+  elements.editEmployeeNameField = document.getElementById('editEmployeeNameField');
   elements.editEmployeeName = document.getElementById('editEmployeeName');
+  elements.createReportProfileField = document.getElementById('createReportProfileField');
+  elements.createReportProfileSelect = document.getElementById('createReportProfileSelect');
   elements.editWorkDate = document.getElementById('editWorkDate');
   elements.editCommissionNumber = document.getElementById('editCommissionNumber');
   elements.editProjectName = document.getElementById('editProjectName');
@@ -114,6 +120,7 @@ function cacheElements() {
   elements.editOtherCostsAmount = document.getElementById('editOtherCostsAmount');
   elements.editNotes = document.getElementById('editNotes');
   elements.reportEditAttachments = document.getElementById('reportEditAttachments');
+  elements.saveReportEditButton = document.getElementById('saveReportEditButton');
   elements.specialReportEditModal = document.getElementById('specialReportEditModal');
   elements.specialReportEditForm = document.getElementById('specialReportEditForm');
   elements.closeSpecialReportEditModalButton = document.getElementById('closeSpecialReportEditModalButton');
@@ -294,6 +301,7 @@ function bindEvents() {
   if (elements.missingList) {
     elements.missingList.addEventListener('click', handleMissingListClick);
   }
+  elements.openReportCreateButton?.addEventListener('click', openReportCreateModal);
   elements.reportsTableBody.addEventListener('click', handleReportsTableClick);
   elements.absencesTableBody.addEventListener('click', handleAbsencesTableClick);
   elements.reportsPrevPageButton.addEventListener('click', goToPreviousReportsPage);

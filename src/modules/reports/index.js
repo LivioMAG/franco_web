@@ -154,6 +154,7 @@ function renderReportStats() {
 }
 
 function renderEmployeeFilters() {
+  if (elements.openReportCreateButton) elements.openReportCreateButton.disabled = state.isLoadingData || state.isSavingReport || !getReportableProfiles().length;
   if (elements.showControlledReportsInput) elements.showControlledReportsInput.checked = state.showControlledReports;
   if (elements.reportsSortSelect) elements.reportsSortSelect.value = state.reportsSortMode;
   if (elements.showControlledReportsToggle) {
@@ -1349,6 +1350,84 @@ function renderSpecialReportEditAbsenceTypeOptions(selectedTypeCode) {
     .join('');
 }
 
+function setReportEditMode(isCreating) {
+  state.isCreatingReport = Boolean(isCreating);
+  if (elements.reportEditTitle) {
+    elements.reportEditTitle.textContent = isCreating ? 'Rapport erstellen' : 'Rapport bearbeiten';
+  }
+  if (elements.reportEditDescription) {
+    elements.reportEditDescription.textContent = isCreating
+      ? 'Admin-Rapport für einen ausgewählten Mitarbeiter neu erfassen. Die bestehende RLS prüft den Insert serverseitig.'
+      : 'Bestehende Rapporte können hier kontrolliert und angepasst werden.';
+  }
+  elements.editEmployeeNameField?.classList.toggle('hidden', isCreating);
+  elements.createReportProfileField?.classList.toggle('hidden', !isCreating);
+  if (elements.createReportProfileSelect) {
+    elements.createReportProfileSelect.required = isCreating;
+  }
+  if (elements.editProjectName) {
+    elements.editProjectName.readOnly = !isCreating;
+  }
+  if (elements.saveReportEditButton) {
+    elements.saveReportEditButton.textContent = isCreating ? 'Rapport erstellen' : 'Änderungen speichern';
+  }
+}
+
+function renderCreateReportProfileOptions(selectedProfileId = '') {
+  if (!elements.createReportProfileSelect) return;
+  const profiles = getReportableProfiles()
+    .slice()
+    .sort((left, right) => String(left.full_name || '').localeCompare(String(right.full_name || '')));
+  elements.createReportProfileSelect.innerHTML = profiles
+    .map((profile) => `<option value="${escapeAttribute(profile.id)}" ${String(profile.id) === String(selectedProfileId) ? 'selected' : ''}>${escapeHtml(profile.full_name || profile.email || 'Unbekannt')}</option>`)
+    .join('');
+}
+
+function getDefaultCreateReportProfileId() {
+  if (state.reportColumnFilter.type === 'employee' && state.reportColumnFilter.values.length === 1) {
+    const [profileId] = state.reportColumnFilter.values;
+    if (getReportableProfiles().some((profile) => String(profile.id) === String(profileId))) {
+      return profileId;
+    }
+  }
+  return getReportableProfiles()[0]?.id || '';
+}
+
+function openReportCreateModal() {
+  if (!elements.reportEditModal || state.isSavingReport) {
+    return;
+  }
+  const defaultProfileId = getDefaultCreateReportProfileId();
+  if (!defaultProfileId) {
+    alert('Es ist kein aktiver Mitarbeiter vorhanden, für den ein Rapport erstellt werden kann.');
+    return;
+  }
+
+  const weekRange = getWeekRange(state.selectedWeek);
+  state.editingReportId = null;
+  state.editingReportPauseMinutes = 90;
+  setReportEditMode(true);
+  renderCreateReportProfileOptions(defaultProfileId);
+  elements.editReportId.value = '';
+  elements.editEmployeeName.value = '';
+  elements.editWorkDate.value = weekRange.start;
+  elements.editCommissionNumber.value = '';
+  elements.editProjectName.value = '';
+  elements.editStartTime.value = '07:00';
+  elements.editEndTime.value = '16:30';
+  elements.editPauseMinutes.value = 90;
+  elements.editTotalMinutes.value = 480;
+  elements.editExpensesAmount.value = 0;
+  elements.editOtherCostsAmount.value = 0;
+  elements.editNotes.value = '';
+  elements.editStartTime.disabled = false;
+  elements.editEndTime.disabled = false;
+  if (elements.reportEditAttachments) {
+    elements.reportEditAttachments.innerHTML = '–';
+  }
+  elements.reportEditModal.classList.remove('hidden');
+}
+
 function openReportEditModal(reportId) {
   const report = state.weeklyReports.find((item) => String(item.id) === String(reportId));
   if (!report) {
@@ -1362,6 +1441,7 @@ function openReportEditModal(reportId) {
 
   const profile = getProfileById(report.profile_id);
   state.editingReportId = report.id;
+  setReportEditMode(false);
   elements.editReportId.value = report.id;
   elements.editEmployeeName.value = profile?.full_name ?? 'Unbekannt';
   elements.editWorkDate.value = report.work_date || '';
@@ -1385,6 +1465,7 @@ function openReportEditModal(reportId) {
 
 function closeReportEditModal() {
   state.editingReportId = null;
+  state.isCreatingReport = false;
   state.editingReportPauseMinutes = 0;
   if (!elements.reportEditModal || !elements.reportEditForm) {
     return;
@@ -1393,6 +1474,7 @@ function closeReportEditModal() {
   elements.reportEditModal.classList.add('hidden');
   elements.editStartTime.disabled = false;
   elements.editEndTime.disabled = false;
+  setReportEditMode(false);
   elements.reportEditForm.reset();
   if (elements.reportEditAttachments) {
     elements.reportEditAttachments.innerHTML = '';
@@ -1567,43 +1649,84 @@ function applyReportEditTimeFieldState(report) {
 
 async function handleReportEditSubmit(event) {
   event.preventDefault();
-  if (!state.editingReportId || state.isSavingReport) {
+  if (state.isSavingReport) {
     return;
   }
 
+  const isCreating = state.isCreatingReport;
   const reportId = state.editingReportId;
-  const existingReport = state.weeklyReports.find((item) => String(item.id) === String(reportId));
-  if (!existingReport) {
+  const existingReport = isCreating
+    ? null
+    : state.weeklyReports.find((item) => String(item.id) === String(reportId));
+  if (!isCreating && !existingReport) {
     closeReportEditModal();
     return;
   }
+
+  const selectedProfileId = isCreating ? elements.createReportProfileSelect?.value : existingReport.profile_id;
+  const workDate = elements.editWorkDate.value;
+  const commissionNumber = elements.editCommissionNumber.value.trim();
+  if (isCreating && !selectedProfileId) {
+    alert('Bitte einen Mitarbeiter auswählen.');
+    return;
+  }
+  if (!workDate) {
+    alert('Bitte ein Datum auswählen.');
+    return;
+  }
+  if (!commissionNumber) {
+    alert('Bitte eine Kommission erfassen.');
+    return;
+  }
+
   syncEditedWorkMinutesWithTimeRange();
   const totalWorkMinutes = Math.max(0, Number(elements.editTotalMinutes.value || 0));
   const pauseMinutes = Math.max(0, Number(elements.editPauseMinutes.value || 0));
-  const baseAdjustedMinutes = shouldApplyHolidayDoubleMinutes(existingReport)
+  const baseAdjustedMinutes = existingReport && shouldApplyHolidayDoubleMinutes(existingReport)
     ? Math.round(totalWorkMinutes / 2)
     : totalWorkMinutes;
-  const updates = {
-    work_date: elements.editWorkDate.value,
-    ...getIsoYearAndWeekFromDateString(elements.editWorkDate.value),
-    commission_number: elements.editCommissionNumber.value.trim(),
-    start_time: elements.editStartTime.disabled ? (existingReport.start_time || '00:00:00') : elements.editStartTime.value,
-    end_time: elements.editEndTime.disabled ? (existingReport.end_time || '00:00:00') : elements.editEndTime.value,
+  const sharedPayload = {
+    work_date: workDate,
+    ...getIsoYearAndWeekFromDateString(workDate),
+    commission_number: commissionNumber,
+    project_name: elements.editProjectName.value.trim() || null,
+    start_time: !isCreating && elements.editStartTime.disabled ? (existingReport.start_time || '00:00:00') : elements.editStartTime.value,
+    end_time: !isCreating && elements.editEndTime.disabled ? (existingReport.end_time || '00:00:00') : elements.editEndTime.value,
     lunch_break_minutes: pauseMinutes,
     additional_break_minutes: 0,
     total_work_minutes: totalWorkMinutes,
-    ...buildAdjustedMinutesUpdatePayload(existingReport, baseAdjustedMinutes),
     expenses_amount: Number(elements.editExpensesAmount.value || 0),
     other_costs_amount: Number(elements.editOtherCostsAmount.value || 0),
     notes: elements.editNotes.value.trim(),
   };
+  const payload = isCreating
+    ? {
+      profile_id: selectedProfileId,
+      abz_typ: 0,
+      ...sharedPayload,
+      total_adjusted_work_minutes: baseAdjustedMinutes,
+      expense_note: '',
+      controll: '',
+      attachments: [],
+    }
+    : {
+      ...sharedPayload,
+      ...buildAdjustedMinutesUpdatePayload(existingReport, baseAdjustedMinutes),
+    };
 
   state.isSavingReport = true;
   try {
     if (state.isDemoMode) {
-      updateDemoReport(reportId, updates);
+      if (isCreating) {
+        demoWeeklyReports.push({ id: crypto.randomUUID(), ...payload });
+      } else {
+        updateDemoReport(reportId, payload);
+      }
+    } else if (isCreating) {
+      const { error } = await state.supabase.from('weekly_reports').insert(payload);
+      if (error) throw error;
     } else {
-      const { error } = await state.supabase.from('weekly_reports').update(updates).eq('id', reportId);
+      const { error } = await state.supabase.from('weekly_reports').update(payload).eq('id', reportId);
       if (error) throw error;
     }
 
@@ -1611,7 +1734,7 @@ async function handleReportEditSubmit(event) {
     closeReportEditModal();
   } catch (error) {
     console.error(error);
-    alert(`Rapport konnte nicht aktualisiert werden: ${error.message}`);
+    alert(`Rapport konnte nicht ${isCreating ? 'erstellt' : 'aktualisiert'} werden: ${error.message}`);
   } finally {
     state.isSavingReport = false;
     render();
