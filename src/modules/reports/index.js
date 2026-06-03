@@ -318,10 +318,14 @@ function getAbsenceControlSummaries() {
         }
 
         const typeCode = Number(getAbsenceTypeCode(report));
-        if (typeCode === 2) {
+        if (typeCode === 1) {
+          totals.vacationMinutes += minutes;
+        } else if (typeCode === 2) {
           totals.illnessMinutes += minutes;
         } else if (typeCode === 4) {
           totals.accidentMinutes += minutes;
+        } else if (HOLIDAY_TYPE_CODES.has(typeCode)) {
+          totals.holidayMinutes += minutes;
         } else if (typeCode > 0) {
           totals.otherAbsenceMinutes += minutes;
           const label = getAbsenceTypeLabel(report, 'Absenz');
@@ -335,21 +339,177 @@ function getAbsenceControlSummaries() {
       }, {
         illnessMinutes: 0,
         accidentMinutes: 0,
+        holidayMinutes: 0,
+        vacationMinutes: 0,
         otherAbsenceMinutes: 0,
         remainingMinutes: 0,
         totalMinutes: 0,
         otherAbsenceBreakdown: new Map(),
       });
 
+      const relevantAbsenceMinutes = buckets.illnessMinutes
+        + buckets.accidentMinutes
+        + buckets.holidayMinutes
+        + buckets.vacationMinutes
+        + buckets.otherAbsenceMinutes;
+
       return {
         profile,
         profileName: profile?.full_name || 'Unbekannt',
         ...buckets,
         sicknessAccidentMinutes: buckets.illnessMinutes + buckets.accidentMinutes,
+        relevantAbsenceMinutes,
+        confirmedAbsenceChecks: getConfirmedAbsenceChecksForSummary(profileId, reports),
       };
     })
-    .filter((summary) => summary.sicknessAccidentMinutes > 0)
+    .filter((summary) => summary.relevantAbsenceMinutes > 0)
     .sort((left, right) => left.profileName.localeCompare(right.profileName, 'de'));
+}
+
+function getConfirmedAbsenceChecksForSummary(profileId, reports) {
+  return [
+    buildConfirmedAbsenceCheck(profileId, reports, 2, 'Krankheit'),
+    buildConfirmedAbsenceCheck(profileId, reports, 4, 'Unfall'),
+  ].filter(Boolean);
+}
+
+function buildConfirmedAbsenceCheck(profileId, reports, typeCode, label) {
+  const matchingReports = reports.filter((report) => Number(getAbsenceTypeCode(report)) === typeCode);
+  if (!matchingReports.length) {
+    return null;
+  }
+
+  const matchingDates = matchingReports
+    .map((report) => String(report.work_date || ''))
+    .filter(Boolean);
+  const confirmedRequests = getConfirmedAbsenceRequestsForReports(profileId, typeCode, matchingDates);
+
+  return {
+    label,
+    reportMinutes: matchingReports.reduce((sum, report) => sum + getAbsenceControlReportMinutes(report), 0),
+    confirmedRequests,
+    hasConfirmedAbsence: confirmedRequests.length > 0,
+  };
+}
+
+function getConfirmedAbsenceRequestsForReports(profileId, typeCode, reportDates) {
+  const uniqueDates = [...new Set(reportDates)];
+  if (!uniqueDates.length) {
+    return [];
+  }
+
+  return state.holidayRequests
+    .filter((request) => String(request.profile_id) === String(profileId))
+    .filter((request) => Number(getAbsenceTypeCode(request)) === Number(typeCode))
+    .filter((request) => getHolidayRequestApprovalStatus(request) === 2)
+    .filter((request) => uniqueDates.some((workDate) => isDateWithinAbsenceRequest(workDate, request)))
+    .map((request) => buildConfirmedAbsenceRequestControlInfo(request))
+    .sort((left, right) => String(left.startDate || '').localeCompare(String(right.startDate || '')));
+}
+
+function buildConfirmedAbsenceRequestControlInfo(request) {
+  const specialRequestHours = getAbsenceControlSpecialRequestHoursMap(request);
+  const profile = getProfileById(request.profile_id);
+  const weeklyHours = getAbsenceControlProfileWeeklyHours(profile);
+  const weeklyAbsenceHours = specialRequestHours
+    ? getAbsenceControlWeeklySpecialRequestHours(request, specialRequestHours)
+    : weeklyHours;
+  const rawIncapacityPercent = specialRequestHours && weeklyHours > 0
+    ? (weeklyAbsenceHours / weeklyHours) * 100
+    : 100;
+
+  return {
+    id: request.id,
+    startDate: request.start_date,
+    endDate: request.end_date,
+    weeklyHours,
+    weeklyAbsenceHours,
+    rawIncapacityPercent,
+    incapacityPercent: specialRequestHours ? roundAbsenceControlPercent(rawIncapacityPercent) : 100,
+    isFullIncapacity: !specialRequestHours,
+  };
+}
+
+function getAbsenceControlSpecialRequestHoursMap(request) {
+  const value = request?.special_request_hours;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return Object.keys(value).length ? value : null;
+}
+
+function getAbsenceControlWeeklySpecialRequestHours(request, specialRequestHours) {
+  const weekdayHours = new Map();
+  const dateHours = [];
+
+  Object.entries(specialRequestHours || {}).forEach(([key, value]) => {
+    const hours = normalizeAbsenceControlHours(value);
+    if (hours <= 0) return;
+
+    const weekdayIndex = getAbsenceControlWeekdayIndexFromKey(key);
+    if (weekdayIndex !== null) {
+      weekdayHours.set(weekdayIndex, hours);
+      return;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(key))) {
+      dateHours.push({ date: String(key), hours });
+    }
+  });
+
+  if (weekdayHours.size) {
+    return [...weekdayHours.values()].reduce((sum, hours) => sum + hours, 0);
+  }
+
+  const weeklyTotals = new Map();
+  dateHours.forEach((entry) => {
+    const week = getIsoWeekValueFromDate(new Date(`${entry.date}T00:00:00Z`));
+    weeklyTotals.set(week, (weeklyTotals.get(week) || 0) + entry.hours);
+  });
+
+  if (weeklyTotals.size) {
+    return [...weeklyTotals.values()].reduce((sum, hours) => sum + hours, 0) / weeklyTotals.size;
+  }
+
+  return 0;
+}
+
+function getAbsenceControlWeekdayIndexFromKey(key) {
+  const normalizedKey = normalizeSearchValue(key);
+  const weekdayAliases = {
+    montag: 0, mo: 0, monday: 0,
+    dienstag: 1, di: 1, tuesday: 1,
+    mittwoch: 2, mi: 2, wednesday: 2,
+    donnerstag: 3, do: 3, thursday: 3,
+    freitag: 4, fr: 4, friday: 4,
+    samstag: 5, sa: 5, saturday: 5,
+    sonntag: 6, so: 6, sunday: 6,
+  };
+  return Object.prototype.hasOwnProperty.call(weekdayAliases, normalizedKey) ? weekdayAliases[normalizedKey] : null;
+}
+
+function normalizeAbsenceControlHours(value) {
+  const normalizedValue = typeof value === 'string' ? value.replace(',', '.') : value;
+  const hours = Number(normalizedValue);
+  return Number.isFinite(hours) && hours > 0 ? hours : 0;
+}
+
+function getAbsenceControlProfileWeeklyHours(profile) {
+  const weeklyHours = Number(profile?.weekly_hours);
+  return Number.isFinite(weeklyHours) && weeklyHours > 0 ? weeklyHours : 40;
+}
+
+function roundAbsenceControlPercent(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.round(value / 5) * 5);
+}
+
+function isDateWithinAbsenceRequest(workDate, request) {
+  const date = String(workDate || '');
+  return date && date >= String(request?.start_date || '') && date <= String(request?.end_date || '');
 }
 
 function getAbsenceControlReportMinutes(report) {
@@ -366,12 +526,12 @@ function renderAbsenceControlContent(summaries) {
   }
 
   if (!summaries.length) {
-    return `<p class="empty-state">In ${escapeHtml(getWeekLabel(state.selectedWeek))} wurden keine Rapporte mit Krankheit oder Unfall gefunden.</p>`;
+    return `<p class="empty-state">In ${escapeHtml(getWeekLabel(state.selectedWeek))} wurden keine Absenzrapporte gefunden.</p>`;
   }
 
   return `
     <div class="absence-control-summary subtle-text">
-      ${escapeHtml(getWeekLabel(state.selectedWeek))}: ${summaries.length} Mitarbeiter mit Krankheit oder Unfall.
+      ${escapeHtml(getWeekLabel(state.selectedWeek))}: ${summaries.length} Mitarbeiter mit rapportierten Absenzen.
     </div>
     <div class="absence-control-list">
       ${summaries.map(renderAbsenceControlEmployeeCard).join('')}
@@ -384,6 +544,8 @@ function renderAbsenceControlEmployeeCard(summary) {
   const rows = [
     { label: 'Krankheit', minutes: summary.illnessMinutes, className: 'illness' },
     { label: 'Unfall', minutes: summary.accidentMinutes, className: 'accident' },
+    { label: 'Feiertag', minutes: summary.holidayMinutes, className: 'holiday' },
+    { label: 'Ferien', minutes: summary.vacationMinutes, className: 'vacation' },
     { label: 'Weitere Absenzen', minutes: summary.otherAbsenceMinutes, className: 'other-absence' },
     { label: 'Rest', minutes: summary.remainingMinutes, className: 'remaining' },
   ].filter((row) => row.minutes > 0 || row.className !== 'other-absence');
@@ -400,14 +562,64 @@ function renderAbsenceControlEmployeeCard(summary) {
           <strong>${escapeHtml(summary.profileName)}</strong>
           <div class="subtle-text">Total rapportierte Stunden: ${formatMinutes(totalMinutes)}</div>
         </div>
-        <span class="pill warning">Krankheit/Unfall ${formatAbsenceControlPercent(summary.sicknessAccidentMinutes, totalMinutes)}</span>
+        <span class="pill warning">Absenzen ${formatAbsenceControlPercent(summary.relevantAbsenceMinutes, totalMinutes)}</span>
       </div>
       <div class="absence-control-bars" role="list">
         ${rows.map((row) => renderAbsenceControlRatioRow(row, totalMinutes)).join('')}
       </div>
       ${otherBreakdown ? `<div class="absence-control-breakdown subtle-text">${otherBreakdown}</div>` : ''}
+      ${renderConfirmedAbsenceChecks(summary.confirmedAbsenceChecks)}
     </article>
   `;
+}
+
+function renderConfirmedAbsenceChecks(checks) {
+  if (!Array.isArray(checks) || !checks.length) {
+    return '';
+  }
+
+  return `
+    <div class="absence-control-confirmations" aria-label="Bestätigte Absenzen Krankheit und Unfall">
+      ${checks.map((check) => renderConfirmedAbsenceCheck(check)).join('')}
+    </div>
+  `;
+}
+
+function renderConfirmedAbsenceCheck(check) {
+  const statusClass = check.hasConfirmedAbsence ? 'positive' : 'negative';
+  const statusLabel = check.hasConfirmedAbsence ? 'Bestätigte Absenz vorhanden' : 'Keine bestätigte Absenz gefunden';
+  const requestDetails = check.confirmedRequests.length
+    ? check.confirmedRequests.map((request) => renderConfirmedAbsenceRequestDetail(request)).join('')
+    : '<div class="absence-control-confirmation-detail subtle-text">Bitte bestätigte Absenz nachtragen oder prüfen.</div>';
+
+  return `
+    <div class="absence-control-confirmation ${escapeAttribute(statusClass)}">
+      <div class="absence-control-confirmation-heading">
+        <strong>${escapeHtml(check.label)}</strong>
+        <span class="pill ${escapeAttribute(statusClass === 'positive' ? 'success' : 'warning')}">${escapeHtml(statusLabel)}</span>
+      </div>
+      <div class="subtle-text">Rapportiert: ${formatMinutes(check.reportMinutes)}</div>
+      ${requestDetails}
+    </div>
+  `;
+}
+
+function renderConfirmedAbsenceRequestDetail(request) {
+  const percentLabel = `${request.incapacityPercent} %`;
+  const hoursLabel = request.isFullIncapacity
+    ? 'Special Request leer: 100 %'
+    : `${formatAbsenceControlHours(request.weeklyAbsenceHours)} von ${formatAbsenceControlHours(request.weeklyHours)} pro Woche`;
+  return `
+    <div class="absence-control-confirmation-detail">
+      <span>Bestätigte Absenz: ${formatDate(request.startDate)} bis ${formatDate(request.endDate)}</span>
+      <strong>Arbeitsunfähigkeit ${escapeHtml(percentLabel)}</strong>
+      <small>${escapeHtml(hoursLabel)}</small>
+    </div>
+  `;
+}
+
+function formatAbsenceControlHours(hours) {
+  return `${Number(hours || 0).toFixed(2)} h`;
 }
 
 function renderAbsenceControlRatioRow(row, totalMinutes) {
