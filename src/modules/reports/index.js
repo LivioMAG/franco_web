@@ -1363,8 +1363,12 @@ function setReportEditMode(isCreating) {
   }
   elements.editEmployeeNameField?.classList.toggle('hidden', isCreating);
   elements.createReportProfileField?.classList.toggle('hidden', !isCreating);
+  elements.createReportTypeField?.classList.toggle('hidden', !isCreating);
   if (elements.createReportProfileSelect) {
     elements.createReportProfileSelect.required = isCreating;
+  }
+  if (elements.createReportTypeSelect) {
+    elements.createReportTypeSelect.required = isCreating;
   }
   if (elements.editProjectName) {
     elements.editProjectName.readOnly = !isCreating;
@@ -1382,6 +1386,69 @@ function renderCreateReportProfileOptions(selectedProfileId = '') {
   elements.createReportProfileSelect.innerHTML = profiles
     .map((profile) => `<option value="${escapeAttribute(profile.id)}" ${String(profile.id) === String(selectedProfileId) ? 'selected' : ''}>${escapeHtml(profile.full_name || profile.email || 'Unbekannt')}</option>`)
     .join('');
+}
+
+function renderCreateReportTypeOptions(selectedTypeCode = 0) {
+  if (!elements.createReportTypeSelect) return;
+  const options = [
+    { typeCode: 0, label: 'Normaler Rapport' },
+    ...getEditableSpecialAbsenceOptions(),
+  ];
+  elements.createReportTypeSelect.innerHTML = options
+    .map((option) => `<option value="${escapeAttribute(option.typeCode)}" ${Number(option.typeCode) === Number(selectedTypeCode) ? 'selected' : ''}>${escapeHtml(option.label)}</option>`)
+    .join('');
+}
+
+function getSelectedCreateReportTypeCode() {
+  if (!state.isCreatingReport || !elements.createReportTypeSelect) {
+    return 0;
+  }
+  const selectedTypeCode = Number(elements.createReportTypeSelect.value || 0);
+  return Number.isFinite(selectedTypeCode) ? selectedTypeCode : 0;
+}
+
+function isCreatingSpecialAbsenceReport() {
+  return state.isCreatingReport && getSelectedCreateReportTypeCode() !== 0;
+}
+
+function applyCreateReportTypeFieldState() {
+  const isSpecialAbsence = isCreatingSpecialAbsenceReport();
+  const normalOnlyFields = [
+    elements.editCommissionNumberField,
+    elements.editProjectNameField,
+    elements.editStartTimeField,
+    elements.editEndTimeField,
+    elements.editPauseMinutesField,
+    elements.editOtherCostsAmountField,
+    elements.editNotesField,
+    elements.reportEditAttachmentsField,
+  ];
+
+  normalOnlyFields.forEach((field) => field?.classList.toggle('hidden', isSpecialAbsence));
+
+  if (elements.editCommissionNumber) {
+    elements.editCommissionNumber.required = !isSpecialAbsence;
+  }
+
+  if (isSpecialAbsence) {
+    elements.editStartTime.value = '00:00';
+    elements.editEndTime.value = '00:00';
+    elements.editPauseMinutes.value = 0;
+    elements.editOtherCostsAmount.value = 0;
+    elements.editNotes.value = '';
+  } else if (state.isCreatingReport) {
+    if (isZeroTimeValue(elements.editStartTime.value) && isZeroTimeValue(elements.editEndTime.value)) {
+      elements.editStartTime.value = '07:00';
+      elements.editEndTime.value = '16:30';
+    }
+    if (Number(elements.editPauseMinutes.value || 0) === 0) {
+      elements.editPauseMinutes.value = 90;
+    }
+  }
+}
+
+function handleCreateReportTypeChange() {
+  applyCreateReportTypeFieldState();
 }
 
 function getDefaultCreateReportProfileId() {
@@ -1409,6 +1476,7 @@ function openReportCreateModal() {
   state.editingReportPauseMinutes = 90;
   setReportEditMode(true);
   renderCreateReportProfileOptions(defaultProfileId);
+  renderCreateReportTypeOptions(0);
   elements.editReportId.value = '';
   elements.editEmployeeName.value = '';
   elements.editWorkDate.value = weekRange.start;
@@ -1426,6 +1494,7 @@ function openReportCreateModal() {
   if (elements.reportEditAttachments) {
     elements.reportEditAttachments.innerHTML = '–';
   }
+  applyCreateReportTypeFieldState();
   elements.reportEditModal.classList.remove('hidden');
 }
 
@@ -1460,6 +1529,7 @@ function openReportEditModal(reportId) {
   if (elements.reportEditAttachments) {
     elements.reportEditAttachments.innerHTML = renderAttachmentLinks(report.attachments);
   }
+  applyCreateReportTypeFieldState();
   applyReportEditTimeFieldState(report);
   elements.reportEditModal.classList.remove('hidden');
 }
@@ -1476,6 +1546,7 @@ function closeReportEditModal() {
   elements.editStartTime.disabled = false;
   elements.editEndTime.disabled = false;
   setReportEditMode(false);
+  applyCreateReportTypeFieldState();
   elements.reportEditForm.reset();
   if (elements.reportEditAttachments) {
     elements.reportEditAttachments.innerHTML = '';
@@ -1666,7 +1737,10 @@ async function handleReportEditSubmit(event) {
 
   const selectedProfileId = isCreating ? elements.createReportProfileSelect?.value : existingReport.profile_id;
   const workDate = elements.editWorkDate.value;
-  const commissionNumber = elements.editCommissionNumber.value.trim();
+  const selectedReportTypeCode = isCreating ? getSelectedCreateReportTypeCode() : Number(existingReport.abz_typ || 0);
+  const isSpecialAbsence = isCreating && selectedReportTypeCode !== 0;
+  const selectedReportTypeLabel = isSpecialAbsence ? getEditableSpecialAbsenceLabel(selectedReportTypeCode) : '';
+  const commissionNumber = isSpecialAbsence ? selectedReportTypeLabel : elements.editCommissionNumber.value.trim();
   if (isCreating && !selectedProfileId) {
     alert('Bitte einen Mitarbeiter auswählen.');
     return;
@@ -1680,9 +1754,11 @@ async function handleReportEditSubmit(event) {
     return;
   }
 
-  syncEditedWorkMinutesWithTimeRange();
+  if (!isSpecialAbsence) {
+    syncEditedWorkMinutesWithTimeRange();
+  }
   const totalWorkMinutes = Math.max(0, Number(elements.editTotalMinutes.value || 0));
-  const pauseMinutes = Math.max(0, Number(elements.editPauseMinutes.value || 0));
+  const pauseMinutes = isSpecialAbsence ? 0 : Math.max(0, Number(elements.editPauseMinutes.value || 0));
   const baseAdjustedMinutes = existingReport && shouldApplyHolidayDoubleMinutes(existingReport)
     ? Math.round(totalWorkMinutes / 2)
     : totalWorkMinutes;
@@ -1690,20 +1766,20 @@ async function handleReportEditSubmit(event) {
     work_date: workDate,
     ...getIsoYearAndWeekFromDateString(workDate),
     commission_number: commissionNumber,
-    project_name: elements.editProjectName.value.trim() || null,
-    start_time: !isCreating && elements.editStartTime.disabled ? (existingReport.start_time || '00:00:00') : elements.editStartTime.value,
-    end_time: !isCreating && elements.editEndTime.disabled ? (existingReport.end_time || '00:00:00') : elements.editEndTime.value,
+    project_name: isSpecialAbsence ? selectedReportTypeLabel : (elements.editProjectName.value.trim() || null),
+    start_time: isSpecialAbsence ? '00:00' : (!isCreating && elements.editStartTime.disabled ? (existingReport.start_time || '00:00:00') : elements.editStartTime.value),
+    end_time: isSpecialAbsence ? '00:00' : (!isCreating && elements.editEndTime.disabled ? (existingReport.end_time || '00:00:00') : elements.editEndTime.value),
     lunch_break_minutes: pauseMinutes,
     additional_break_minutes: 0,
     total_work_minutes: totalWorkMinutes,
     expenses_amount: Number(elements.editExpensesAmount.value || 0),
-    other_costs_amount: Number(elements.editOtherCostsAmount.value || 0),
-    notes: elements.editNotes.value.trim(),
+    other_costs_amount: isSpecialAbsence ? 0 : Number(elements.editOtherCostsAmount.value || 0),
+    notes: isSpecialAbsence ? '' : elements.editNotes.value.trim(),
   };
   const payload = isCreating
     ? {
       profile_id: selectedProfileId,
-      abz_typ: 0,
+      abz_typ: selectedReportTypeCode,
       ...sharedPayload,
       total_adjusted_work_minutes: baseAdjustedMinutes,
       expense_note: '',

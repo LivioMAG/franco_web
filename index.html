@@ -569,19 +569,23 @@
                 <span>Datum</span>
                 <input id="editWorkDate" type="date" required />
               </label>
-              <label>
+              <label id="createReportTypeField" class="hidden">
+                <span>Rapporttyp</span>
+                <select id="createReportTypeSelect"></select>
+              </label>
+              <label id="editCommissionNumberField">
                 <span>Kommission</span>
                 <input id="editCommissionNumber" type="text" />
               </label>
-              <label>
+              <label id="editProjectNameField">
                 <span>Projektname</span>
                 <input id="editProjectName" type="text" readonly />
               </label>
-              <label>
+              <label id="editStartTimeField">
                 <span>Start</span>
                 <input id="editStartTime" type="time" />
               </label>
-              <label>
+              <label id="editEndTimeField">
                 <span>Ende</span>
                 <input id="editEndTime" type="time" />
               </label>
@@ -589,7 +593,7 @@
                 <span>Arbeitsminuten</span>
                 <input id="editTotalMinutes" type="number" min="0" step="1" />
               </label>
-              <label>
+              <label id="editPauseMinutesField">
                 <span>Pausenminuten</span>
                 <input id="editPauseMinutes" type="number" min="0" step="5" />
               </label>
@@ -597,16 +601,16 @@
                 <span>Spesen</span>
                 <input id="editExpensesAmount" type="number" min="0" step="0.05" />
               </label>
-              <label>
+              <label id="editOtherCostsAmountField">
                 <span>Weitere Kosten</span>
                 <input id="editOtherCostsAmount" type="number" min="0" step="0.05" />
               </label>
             </div>
-            <label>
+            <label id="editNotesField">
               <span>Bemerkungen</span>
               <textarea id="editNotes" rows="4" placeholder="Bemerkungen zum Rapport"></textarea>
             </label>
-            <div>
+            <div id="reportEditAttachmentsField">
               <strong>Anhang</strong>
               <div id="reportEditAttachments" class="attachment-list"></div>
             </div>
