@@ -18,6 +18,10 @@ function handleGlobalKeydown(event) {
     closeAbsenceControlModal();
     return;
   }
+  if (elements.holidayControlModal && !elements.holidayControlModal.classList.contains('hidden')) {
+    closeHolidayControlModal();
+    return;
+  }
   if (elements.bulkConfirmModal && !elements.bulkConfirmModal.classList.contains('hidden')) {
     closeBulkConfirmModal();
     return;

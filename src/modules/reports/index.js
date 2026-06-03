@@ -13,6 +13,7 @@ function render() {
     closeSpecialReportEditModal();
     closeAdjustedMinutesModal();
     closeAbsenceControlModal({ renderStateOnly: true });
+    closeHolidayControlModal({ renderStateOnly: true });
     elements.accessDeniedView.classList.add('hidden');
     elements.loginView.classList.remove('hidden');
     if (elements.loginAlert) {
@@ -28,6 +29,7 @@ function render() {
     closeSpecialReportEditModal();
     closeAdjustedMinutesModal();
     closeAbsenceControlModal({ renderStateOnly: true });
+    closeHolidayControlModal({ renderStateOnly: true });
     renderLoadingOverlay();
     renderLucideIcons();
     return;
@@ -41,7 +43,9 @@ function render() {
   renderAbsenceFilters();
   renderReportsTable();
   renderSubmissionLists();
+  renderHolidayControlButtonState();
   renderAbsenceControlModalState();
+  renderHolidayControlModalState();
   renderMissingReportsCallModalState();
   renderAbsenceTable();
   renderBulkConfirmModalState();
@@ -291,6 +295,52 @@ function closeAbsenceControlModal({ renderStateOnly = false } = {}) {
   renderAbsenceControlModalState();
 }
 
+function openHolidayControlModal() {
+  state.isHolidayControlModalOpen = true;
+  renderHolidayControlModalState();
+}
+
+function closeHolidayControlModal({ renderStateOnly = false } = {}) {
+  state.isHolidayControlModalOpen = false;
+  if (renderStateOnly) {
+    elements.holidayControlModal?.classList.add('hidden');
+    return;
+  }
+
+  renderHolidayControlModalState();
+}
+
+function renderHolidayControlButtonState() {
+  if (!elements.holidayControlButton) {
+    return;
+  }
+
+  const summary = getHolidayControlSummary();
+  const shouldShow = !state.isLoadingData && summary.shouldShowButton;
+  const hasInvalidReports = summary.invalidHolidayReports.length > 0;
+  const title = hasInvalidReports
+    ? 'Feiertagskontrolle: rapportierte Feiertage ohne Plattform-Feiertag'
+    : 'Feiertagskontrolle öffnen';
+
+  elements.holidayControlButton.classList.toggle('hidden', !shouldShow);
+  elements.holidayControlButton.classList.toggle('is-alert', shouldShow && hasInvalidReports);
+  elements.holidayControlButton.setAttribute('title', title);
+  elements.holidayControlButton.setAttribute('aria-label', title);
+}
+
+function renderHolidayControlModalState() {
+  if (!elements.holidayControlModal) {
+    return;
+  }
+
+  elements.holidayControlModal.classList.toggle('hidden', !state.isHolidayControlModalOpen);
+  if (!state.isHolidayControlModalOpen || !elements.holidayControlModalContent) {
+    return;
+  }
+
+  elements.holidayControlModalContent.innerHTML = renderHolidayControlContent(getHolidayControlSummary());
+}
+
 function renderAbsenceControlModalState() {
   if (!elements.absenceControlModal) {
     return;
@@ -303,6 +353,175 @@ function renderAbsenceControlModalState() {
 
   const summaries = getAbsenceControlSummaries();
   elements.absenceControlModalContent.innerHTML = renderAbsenceControlContent(summaries);
+}
+
+function getHolidayControlSummary() {
+  const weekRange = getWeekRange(state.selectedWeek);
+  const weekPlatformHolidays = state.platformHolidays
+    .filter((entry) => isDateInRange(entry?.holiday_date, weekRange.start, weekRange.end))
+    .sort((left, right) => String(left.holiday_date || '').localeCompare(String(right.holiday_date || '')));
+  const platformHolidayDates = new Set(weekPlatformHolidays.map((entry) => String(entry.holiday_date || '')));
+  const holidayReports = state.weeklyReports
+    .filter((report) => HOLIDAY_TYPE_CODES.has(Number(getAbsenceTypeCode(report))))
+    .filter((report) => String(report.work_date || ''));
+  const invalidHolidayReports = holidayReports.filter((report) => !platformHolidayDates.has(String(report.work_date || '')));
+  const hasPlatformHoliday = weekPlatformHolidays.length > 0;
+
+  return {
+    weekRange,
+    weekPlatformHolidays,
+    platformHolidayDates,
+    holidayReports,
+    invalidHolidayReports,
+    reportedHolidayPeople: buildHolidayControlReportedPeople(holidayReports),
+    missingHolidayPeople: hasPlatformHoliday ? buildHolidayControlMissingPeople(weekPlatformHolidays, holidayReports) : [],
+    shouldShowButton: hasPlatformHoliday || holidayReports.length > 0,
+  };
+}
+
+function isDateInRange(dateValue, startDate, endDate) {
+  const date = String(dateValue || '');
+  return date && date >= String(startDate || '') && date <= String(endDate || '');
+}
+
+function buildHolidayControlReportedPeople(reports) {
+  const grouped = groupReportsByProfile(reports);
+  return [...grouped.entries()]
+    .map(([profileId, profileReports]) => {
+      const profile = getProfileById(profileId);
+      const dates = [...new Set(profileReports.map((report) => String(report.work_date || '')).filter(Boolean))]
+        .sort()
+        .map((date) => ({
+          date,
+          minutes: profileReports
+            .filter((report) => String(report.work_date || '') === date)
+            .reduce((sum, report) => sum + getAbsenceControlReportMinutes(report), 0),
+        }));
+      return {
+        profile,
+        profileName: profile?.full_name || 'Unbekannt',
+        dates,
+        totalMinutes: profileReports.reduce((sum, report) => sum + getAbsenceControlReportMinutes(report), 0),
+      };
+    })
+    .sort((left, right) => left.profileName.localeCompare(right.profileName, 'de'));
+}
+
+function buildHolidayControlMissingPeople(platformHolidays, holidayReports) {
+  const reportedDatesByProfile = new Map();
+  holidayReports.forEach((report) => {
+    const profileKey = String(report.profile_id || '');
+    if (!profileKey) return;
+    if (!reportedDatesByProfile.has(profileKey)) {
+      reportedDatesByProfile.set(profileKey, new Set());
+    }
+    reportedDatesByProfile.get(profileKey).add(String(report.work_date || ''));
+  });
+
+  return getReportableProfiles()
+    .map((profile) => {
+      const reportedDates = reportedDatesByProfile.get(String(profile.id)) || new Set();
+      const missingHolidays = platformHolidays.filter((holiday) => !reportedDates.has(String(holiday.holiday_date || '')));
+      return {
+        profile,
+        profileName: profile.full_name || 'Unbekannt',
+        missingHolidays,
+      };
+    })
+    .filter((entry) => entry.missingHolidays.length > 0)
+    .sort((left, right) => left.profileName.localeCompare(right.profileName, 'de'));
+}
+
+function renderHolidayControlContent(summary) {
+  if (state.isLoadingData) {
+    return `<p class="empty-state">Feiertagskontrolle für ${escapeHtml(getWeekLabel(state.selectedWeek))} wird geladen …</p>`;
+  }
+
+  const hasPlatformHoliday = summary.weekPlatformHolidays.length > 0;
+  const hasInvalidReports = summary.invalidHolidayReports.length > 0;
+  const platformHolidayLabel = summary.weekPlatformHolidays
+    .map((holiday) => `${escapeHtml(formatDate(holiday.holiday_date))}${holiday.label ? ` · ${escapeHtml(holiday.label)}` : ''}`)
+    .join('<br>');
+
+  if (!hasPlatformHoliday) {
+    return renderHolidayControlNoPlatformHolidayContent(summary, hasInvalidReports);
+  }
+
+  return `
+    <div class="absence-control-summary subtle-text">
+      <strong>Plattform-Feiertag(e) in ${escapeHtml(getWeekLabel(state.selectedWeek))}:</strong><br>${platformHolidayLabel}
+    </div>
+    ${hasInvalidReports ? renderHolidayControlInvalidNotice(summary) : ''}
+    <div class="absence-control-list holiday-control-list">
+      ${summary.missingHolidayPeople.length
+        ? summary.missingHolidayPeople.map(renderHolidayControlMissingPersonCard).join('')
+        : '<p class="empty-state">Alle aktiven Mitarbeiter haben den Plattform-Feiertag rapportiert.</p>'}
+    </div>
+  `;
+}
+
+function renderHolidayControlNoPlatformHolidayContent(summary, hasInvalidReports) {
+  if (!summary.reportedHolidayPeople.length) {
+    return `<p class="empty-state">In ${escapeHtml(getWeekLabel(state.selectedWeek))} gibt es keinen Plattform-Feiertag und keine rapportierten Feiertage.</p>`;
+  }
+
+  return `
+    <div class="absence-control-summary subtle-text ${hasInvalidReports ? 'holiday-control-alert-summary' : ''}">
+      In ${escapeHtml(getWeekLabel(state.selectedWeek))} ist kein Plattform-Feiertag hinterlegt. Aufgelistet sind Personen, die trotzdem einen Feiertag rapportiert haben.
+    </div>
+    <div class="absence-control-list holiday-control-list">
+      ${summary.reportedHolidayPeople.map(renderHolidayControlReportedPersonCard).join('')}
+    </div>
+  `;
+}
+
+function renderHolidayControlInvalidNotice(summary) {
+  const invalidPeople = buildHolidayControlReportedPeople(summary.invalidHolidayReports);
+  return `
+    <div class="absence-control-summary holiday-control-alert-summary">
+      <strong>Achtung:</strong> Zusätzlich wurden Feiertage an Tagen rapportiert, die nicht als Plattform-Feiertag hinterlegt sind:
+      <div class="holiday-control-inline-list">${invalidPeople.map((entry) => `${escapeHtml(entry.profileName)} (${renderHolidayControlDateList(entry.dates)})`).join(' · ')}</div>
+    </div>
+  `;
+}
+
+function renderHolidayControlMissingPersonCard(entry) {
+  const details = entry.missingHolidays
+    .map((holiday) => `${escapeHtml(formatDate(holiday.holiday_date))}${holiday.label ? ` · ${escapeHtml(holiday.label)}` : ''}`)
+    .join('<br>');
+  return `
+    <article class="absence-control-card holiday-control-card">
+      <div class="absence-control-card-heading">
+        <div>
+          <strong>${escapeHtml(entry.profileName)}</strong>
+          <div class="subtle-text">Feiertag nicht rapportiert</div>
+        </div>
+        <span class="pill warning">Fehlt</span>
+      </div>
+      <div class="subtle-text">${details}</div>
+    </article>
+  `;
+}
+
+function renderHolidayControlReportedPersonCard(entry) {
+  return `
+    <article class="absence-control-card holiday-control-card">
+      <div class="absence-control-card-heading">
+        <div>
+          <strong>${escapeHtml(entry.profileName)}</strong>
+          <div class="subtle-text">Rapportierter Feiertag ohne Plattform-Feiertag</div>
+        </div>
+        <span class="pill warning">Prüfen</span>
+      </div>
+      <div class="subtle-text">${renderHolidayControlDateList(entry.dates)} · Total ${formatMinutes(entry.totalMinutes)}</div>
+    </article>
+  `;
+}
+
+function renderHolidayControlDateList(dates) {
+  return dates
+    .map((entry) => `${escapeHtml(formatDate(entry.date))}${entry.minutes ? ` (${formatMinutes(entry.minutes)})` : ''}`)
+    .join(', ');
 }
 
 function getAbsenceControlSummaries() {
@@ -362,7 +581,7 @@ function getAbsenceControlSummaries() {
         confirmedAbsenceChecks: getConfirmedAbsenceChecksForSummary(profileId, reports),
       };
     })
-    .filter((summary) => summary.relevantAbsenceMinutes > 0)
+    .filter((summary) => summary.sicknessAccidentMinutes > 0)
     .sort((left, right) => left.profileName.localeCompare(right.profileName, 'de'));
 }
 
@@ -526,12 +745,12 @@ function renderAbsenceControlContent(summaries) {
   }
 
   if (!summaries.length) {
-    return `<p class="empty-state">In ${escapeHtml(getWeekLabel(state.selectedWeek))} wurden keine Absenzrapporte gefunden.</p>`;
+    return `<p class="empty-state">In ${escapeHtml(getWeekLabel(state.selectedWeek))} wurden keine Rapporte mit Krankheit oder Unfall gefunden.</p>`;
   }
 
   return `
     <div class="absence-control-summary subtle-text">
-      ${escapeHtml(getWeekLabel(state.selectedWeek))}: ${summaries.length} Mitarbeiter mit rapportierten Absenzen.
+      ${escapeHtml(getWeekLabel(state.selectedWeek))}: ${summaries.length} Mitarbeiter mit rapportierter Krankheit oder rapportiertem Unfall.
     </div>
     <div class="absence-control-list">
       ${summaries.map(renderAbsenceControlEmployeeCard).join('')}
