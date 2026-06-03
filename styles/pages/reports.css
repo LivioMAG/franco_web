@@ -21,10 +21,16 @@
   width: fit-content;
   min-height: 36px;
   padding: 8px 10px;
-  border: 1px solid rgba(17, 17, 17, 0.08);
+  border: 1px solid rgba(19, 115, 51, 0.45);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(19, 115, 51, 0.14);
+  box-shadow: 0 8px 18px rgba(19, 115, 51, 0.12);
   cursor: pointer;
+}
+
+.control-checkbox-button:hover {
+  background: rgba(19, 115, 51, 0.2);
+  border-color: rgba(19, 115, 51, 0.62);
 }
 
 .control-checkbox-button input[type='checkbox'] {
