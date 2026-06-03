@@ -1105,10 +1105,24 @@ function parseRequestHistoryEntry(entry) {
   const typeLabel = requestParts[0] || 'Unbekannt';
   const periodMatch = requestParts.find((part) => part.includes(' bis '));
 
+  const approvalNames = getHistoryApprovalNamesFromContext(entry);
+
   return {
     typeLabel,
     periodLabel: periodMatch || '–',
     approvedByLabel: buildHistoryApprovedByLabel(entry),
+    plApprovalLabel: approvalNames.pl,
+    glApprovalLabel: approvalNames.gl,
+  };
+}
+
+function getHistoryApprovalNamesFromContext(entry) {
+  const contextValue = String(entry?.context || '').trim();
+  const plMatch = contextValue.match(/PL:\s*([^|]+)/i);
+  const glMatch = contextValue.match(/GL:\s*([^|]+)/i);
+  return {
+    pl: String(plMatch?.[1] || '').trim() || 'Noch nicht bestätigt',
+    gl: String(glMatch?.[1] || '').trim() || 'Noch nicht bestätigt',
   };
 }
 
@@ -1118,11 +1132,9 @@ function buildHistoryApprovedByLabel(entry) {
     return '–';
   }
 
-  const plMatch = contextValue.match(/PL:\s*([^|]+)/i);
-  const glMatch = contextValue.match(/GL:\s*([^|]+)/i);
-  const names = [plMatch?.[1], glMatch?.[1]]
-    .map((value) => String(value || '').trim())
-    .filter((value) => value && value !== '–');
+  const approvalNames = getHistoryApprovalNamesFromContext(entry);
+  const names = [approvalNames.pl, approvalNames.gl]
+    .filter((value) => value && value !== '–' && value !== 'Noch nicht bestätigt');
 
   if (names.length) {
     return names.join(' / ');
