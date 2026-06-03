@@ -718,6 +718,11 @@
   background: rgba(215, 0, 21, 0.08);
 }
 
+.holiday-control-button.is-alert svg {
+  color: #d70015;
+  stroke: currentColor;
+}
+
 .holiday-control-alert-summary {
   border: 1px solid rgba(215, 0, 21, 0.22);
   color: #8a0010;
