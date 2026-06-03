@@ -45,6 +45,16 @@
   background: rgba(19, 115, 51, 0.07);
 }
 
+.table-wrapper thead th,
+.partial-absence-table-wrapper thead th,
+.dispo-option-list .dispo-select-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #fbfbfc;
+  box-shadow: 0 1px 0 rgba(17, 17, 17, 0.06);
+}
+
 .alert {
   margin-top: 18px;
   padding: 14px 16px;
