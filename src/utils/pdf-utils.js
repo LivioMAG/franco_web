@@ -169,15 +169,109 @@ function buildRequestHistoryConfirmationFileName(entry, profile) {
   return `bestaetigung-${safeName || 'mitarbeiter'}-${createdDate}.pdf`;
 }
 
+function getApprovalPersonLabel(value) {
+  const label = String(value || '').trim();
+  return label || 'Noch nicht bestätigt';
+}
+
+function getHistoryApprovalNames(entry) {
+  const contextValue = String(entry?.context || '').trim();
+  const plMatch = contextValue.match(/PL:\s*([^|]+)/i);
+  const glMatch = contextValue.match(/GL:\s*([^|]+)/i);
+  return {
+    pl: getApprovalPersonLabel(plMatch?.[1]),
+    gl: getApprovalPersonLabel(glMatch?.[1]),
+  };
+}
+
 function buildHistoryPdfDetailRows(entry, details, profile) {
+  const approvalNames = getHistoryApprovalNames(entry);
   return [
     ['Mitarbeiter', profile?.full_name || profile?.email || 'Unbekannt'],
     ['Typ', details.typeLabel],
     ['Von / Bis', details.periodLabel],
-    ['Bestätigt durch', details.approvedByLabel],
+    ['PL Bestätigung', details.plApprovalLabel || approvalNames.pl],
+    ['GL Bestätigung', details.glApprovalLabel || approvalNames.gl],
     ['Ausgelöst am', formatDateTime(entry.created_at)],
-    ['Kontext', String(entry?.context || '').trim() || '–'],
   ];
+}
+
+function drawPdfHeader(pdf, { title, subtitle, statusLabel, statusColor = [22, 163, 74] }) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const margin = 18;
+
+  pdf.setFillColor(248, 250, 252);
+  pdf.rect(0, 0, pageWidth, 42, 'F');
+  pdf.setFillColor(...statusColor);
+  pdf.rect(0, 0, 6, 42, 'F');
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(21);
+  pdf.setTextColor(15, 23, 42);
+  pdf.text(title, margin, 18);
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10);
+  pdf.setTextColor(71, 85, 105);
+  pdf.text(subtitle, margin, 27, { maxWidth: pageWidth - margin * 2 - 44, lineHeightFactor: 1.3 });
+
+  const badgeWidth = Math.max(32, pdf.getTextWidth(statusLabel) + 12);
+  pdf.setFillColor(...statusColor);
+  pdf.roundedRect(pageWidth - margin - badgeWidth, 13, badgeWidth, 10, 2, 2, 'F');
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(8.5);
+  pdf.setTextColor(255, 255, 255);
+  pdf.text(statusLabel, pageWidth - margin - badgeWidth / 2, 19.7, { align: 'center' });
+
+  pdf.setTextColor(0, 0, 0);
+}
+
+function drawModernDetailTable(pdf, { startY, margin, contentWidth, rows, accentColor = [215, 0, 21] }) {
+  pdf.autoTable({
+    startY,
+    margin: { left: margin, right: margin },
+    tableWidth: contentWidth,
+    body: rows,
+    theme: 'plain',
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,
+      cellPadding: { top: 3.2, right: 4, bottom: 3.2, left: 4 },
+      lineColor: [226, 232, 240],
+      lineWidth: 0.15,
+      textColor: [15, 23, 42],
+    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { cellWidth: 48, fontStyle: 'bold', textColor: accentColor, fillColor: [241, 245, 249] },
+      1: { cellWidth: contentWidth - 48 },
+    },
+  });
+}
+
+function drawModernTextPanel(pdf, { title, text, y, margin, contentWidth }) {
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9.8);
+  const lines = pdf.splitTextToSize(String(text || ''), contentWidth - 8);
+  const lineHeight = 5;
+  const panelHeight = Math.max(38, 19 + lines.length * lineHeight);
+
+  pdf.setFillColor(248, 250, 252);
+  pdf.setDrawColor(226, 232, 240);
+  pdf.roundedRect(margin, y, contentWidth, panelHeight, 3, 3, 'FD');
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(11.5);
+  pdf.setTextColor(15, 23, 42);
+  pdf.text(title, margin + 4, y + 8);
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9.8);
+  pdf.setTextColor(51, 65, 85);
+  pdf.text(lines, margin + 4, y + 16, {
+    lineHeightFactor: 1.35,
+  });
+  pdf.setTextColor(0, 0, 0);
 }
 
 function drawRequestHistoryConfirmationPage(pdf, { entry, details, profile }) {
@@ -187,39 +281,28 @@ function drawRequestHistoryConfirmationPage(pdf, { entry, details, profile }) {
   const detailRows = buildHistoryPdfDetailRows(entry, details, profile);
   const requestText = String(entry?.request || '').trim() || '–';
 
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(22);
-  pdf.text('Bestätigung Absenz', margin, 22);
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(10.5);
-  pdf.text('Export aus request_history (Bestätigungen).', margin, 32, {
-    maxWidth: contentWidth,
-    lineHeightFactor: 1.4,
+  drawPdfHeader(pdf, {
+    title: 'Bestätigung Absenz',
+    subtitle: 'Archivierter Export aus den bestätigten Absenzanträgen.',
+    statusLabel: 'Bestätigt',
+    statusColor: [22, 163, 74],
   });
 
-  pdf.autoTable({
-    startY: 42,
-    margin: { left: margin, right: margin },
-    tableWidth: contentWidth,
-    head: [['Feld', 'Wert']],
-    body: detailRows,
-    theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 10, cellPadding: 3, lineColor: [0, 0, 0], lineWidth: 0.2 },
-    headStyles: { fillColor: [215, 0, 21], textColor: [255, 255, 255] },
-    columnStyles: { 0: { cellWidth: 42, fontStyle: 'bold' }, 1: { cellWidth: contentWidth - 42 } },
+  drawModernDetailTable(pdf, {
+    startY: 52,
+    margin,
+    contentWidth,
+    rows: detailRows,
+    accentColor: [22, 163, 74],
   });
 
-  const notesY = (pdf.lastAutoTable?.finalY || 92) + 10;
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(12);
-  pdf.text('Gesuch', margin, notesY);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(10);
-  pdf.rect(margin, notesY + 3, contentWidth, 40);
-  pdf.text(requestText, margin + 3, notesY + 10, {
-    maxWidth: contentWidth - 6,
-    lineHeightFactor: 1.4,
+  const notesY = (pdf.lastAutoTable?.finalY || 96) + 10;
+  drawModernTextPanel(pdf, {
+    title: 'Gesuch',
+    text: requestText,
+    y: notesY,
+    margin,
+    contentWidth,
   });
 }
 
@@ -250,60 +333,45 @@ function drawHolidayConfirmationPage(pdf, { request, profile }) {
   const status = getHolidayRequestApprovalStatus(request);
   const statusLabel = status === 0 ? 'Abgelehnt' : 'Angenommen';
   const personLabel = profile?.full_name || 'den Mitarbeiter';
+  const statusColor = status === 0 ? [220, 38, 38] : [22, 163, 74];
+  const introText = status === 0
+    ? `Der Absenzantrag "${typeLabel}" für ${personLabel} im Zeitraum vom ${formatDate(request.start_date)} bis ${formatDate(request.end_date)} wurde abgelehnt.`
+    : `Die Absenz "${typeLabel}" für ${personLabel} im Zeitraum vom ${formatDate(request.start_date)} bis ${formatDate(request.end_date)} wurde durch PL und GL bestätigt.`;
   const detailRows = [
     ['Mitarbeiter', profile?.full_name || 'Unbekannt'],
-    ['Typ', typeLabel],
+    ['Absenzart', typeLabel],
     ['Status', statusLabel],
     ['Einreichung', formatDateOnly(request.created_at)],
-    ['Von', formatDate(request.start_date)],
-    ['Bis', formatDate(request.end_date)],
+    ['Von / Bis', `${formatDate(request.start_date)} bis ${formatDate(request.end_date)}`],
     ['Dauer', getHolidayRequestDurationLabel(request)],
-    ['Bestätigung PL', String(request.controll_pl || '').trim() || '–'],
-    ['Bestätigung GL', String(request.controll_gl || '').trim() || '–'],
+    ['PL Bestätigung', getApprovalPersonLabel(request.controll_pl)],
+    ['GL Bestätigung', getApprovalPersonLabel(request.controll_gl)],
     ['PDF erstellt am', exportDate],
   ];
 
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(22);
-  pdf.text('Absenzentscheid', margin, 22);
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(10.5);
-  const introText = status === 0
-    ? `Der Absenzantrag "${typeLabel}" für ${personLabel} im Zeitraum vom ${formatDate(request.start_date)} bis ${formatDate(request.end_date)} wurde abgelehnt.`
-    : `Hiermit wird bestätigt, dass die Absenz "${typeLabel}" für ${personLabel} im Zeitraum vom ${formatDate(request.start_date)} bis ${formatDate(request.end_date)} durch PL und GL freigegeben wurde.`;
-  pdf.text(introText, margin, 32, { maxWidth: contentWidth, lineHeightFactor: 1.4 });
-
-  pdf.autoTable({
-    startY: 46,
-    margin: { left: margin, right: margin },
-    tableWidth: contentWidth,
-    head: [['Feld', 'Wert']],
-    body: detailRows,
-    theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 10, cellPadding: 3, lineColor: [0, 0, 0], lineWidth: 0.2 },
-    headStyles: { fillColor: [215, 0, 21], textColor: [255, 255, 255] },
-    columnStyles: { 0: { cellWidth: 42, fontStyle: 'bold' }, 1: { cellWidth: contentWidth - 42 } },
+  drawPdfHeader(pdf, {
+    title: 'Absenzentscheid',
+    subtitle: introText,
+    statusLabel,
+    statusColor,
   });
 
-  const notesY = (pdf.lastAutoTable?.finalY || 92) + 10;
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(12);
-  pdf.text('Bemerkung', margin, notesY);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(10);
-  pdf.rect(margin, notesY + 3, contentWidth, 38);
-  pdf.text(request.notes || 'Keine zusätzliche Bemerkung vorhanden.', margin + 3, notesY + 10, {
-    maxWidth: contentWidth - 6,
-    lineHeightFactor: 1.4,
+  drawModernDetailTable(pdf, {
+    startY: 52,
+    margin,
+    contentWidth,
+    rows: detailRows,
+    accentColor: statusColor,
   });
 
-  const signatureTop = notesY + 52;
-  const signatureLineWidth = Math.min(92, contentWidth);
-  const signatureLeft = margin + (contentWidth - signatureLineWidth) / 2;
-  pdf.line(signatureLeft, signatureTop, signatureLeft + signatureLineWidth, signatureTop);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Unterschrift', signatureLeft, signatureTop + 6);
+  const notesY = (pdf.lastAutoTable?.finalY || 102) + 10;
+  drawModernTextPanel(pdf, {
+    title: 'Bemerkung',
+    text: request.notes || 'Keine zusätzliche Bemerkung vorhanden.',
+    y: notesY,
+    margin,
+    contentWidth,
+  });
 }
 
 async function deleteHolidayRequestAttachments(attachments = []) {
