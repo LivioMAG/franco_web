@@ -58,7 +58,7 @@ function handleSettingsUsersTableChange(event) {
   const schoolDaySelect = document.querySelector(`select[data-school-day-input="${profileId}"]`);
   if (!schoolDaySelect) return;
   const blockSettingsButton = document.querySelector(`button[data-block-days-input="${profileId}"]`);
-  const isApprentice = String(roleSelect.value || '').trim() === 'Lehrling';
+  const isApprentice = normalizeRoleLabelForSettings(roleSelect.value) === 'Lehrling';
   schoolDaySelect.disabled = state.isSavingSettings || !isApprentice;
   if (blockSettingsButton) {
     blockSettingsButton.disabled = state.isSavingSettings;
@@ -66,6 +66,12 @@ function handleSettingsUsersTableChange(event) {
   if (!isApprentice) {
     schoolDaySelect.value = '';
   }
+}
+
+function normalizeRoleLabelForSettings(roleLabel) {
+  const trimmedRoleLabel = String(roleLabel || '').trim();
+  const canonicalRoleLabel = APP_ROLE_OPTIONS.find((option) => option.toLowerCase() === trimmedRoleLabel.toLowerCase());
+  return canonicalRoleLabel || trimmedRoleLabel;
 }
 
 function getSelectedSchoolDay(profileId) {
@@ -126,7 +132,7 @@ function getBlockScheduleSummary(profile) {
 
 async function handleSaveUserSettings(profileId) {
   const roleSelect = document.querySelector(`select[data-role-label-input="${profileId}"]`);
-  const roleLabel = String(roleSelect?.value || '').trim();
+  const roleLabel = normalizeRoleLabelForSettings(roleSelect?.value);
   const targetInput = document.querySelector(`[data-target-revenue-input="${profileId}"]`);
   const weeklyHoursInput = document.querySelector(`[data-weekly-hours-input="${profileId}"]`);
   const vacationAllowanceInput = document.querySelector(`[data-vacation-allowance-hours-input="${profileId}"]`);
@@ -964,16 +970,17 @@ function renderSettingsUsersTable() {
   elements.settingsUsersTableBody.innerHTML = sortedProfiles.map((profile) => {
     const isActive = profile.is_active !== false;
     const isOwnProfile = String(profile.id) === String(state.currentProfile?.id);
-    const isApprentice = String(profile.role_label || '') === 'Lehrling';
-    const roleOptions = APP_ROLE_OPTIONS.includes(String(profile.role_label || ''))
+    const normalizedRoleLabel = normalizeRoleLabelForSettings(profile.role_label);
+    const isApprentice = normalizedRoleLabel === 'Lehrling';
+    const roleOptions = APP_ROLE_OPTIONS.includes(normalizedRoleLabel)
       ? APP_ROLE_OPTIONS
-      : [...APP_ROLE_OPTIONS, String(profile.role_label || 'Benutzer')];
+      : [...APP_ROLE_OPTIONS, normalizedRoleLabel || 'Benutzer'];
     return `<tr>
       <td>${escapeHtml(profile.full_name || '–')}</td>
       <td>${escapeHtml(profile.email || '–')}</td>
       <td>
         <select data-role-label-input="${escapeAttribute(profile.id)}" ${state.isSavingSettings ? 'disabled' : ''}>
-          ${roleOptions.map((role) => `<option value="${escapeAttribute(role)}" ${String(profile.role_label || '') === role ? 'selected' : ''}>${escapeHtml(role)}</option>`).join('')}
+          ${roleOptions.map((role) => `<option value="${escapeAttribute(role)}" ${normalizedRoleLabel === role ? 'selected' : ''}>${escapeHtml(role)}</option>`).join('')}
         </select>
       </td>
       <td>
