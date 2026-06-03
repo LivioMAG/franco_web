@@ -239,7 +239,7 @@ function renderSubmissionLists() {
         <div class="status-stack">
           <strong>
             <button
-              class="button button-secondary button-small button-icon"
+              class="button button-secondary button-small button-icon-only"
               type="button"
               data-action="call-missing-profile"
               data-profile-id="${escapeAttribute(entry.profile.id)}"
@@ -1357,8 +1357,9 @@ function setReportEditMode(isCreating) {
   }
   if (elements.reportEditDescription) {
     elements.reportEditDescription.textContent = isCreating
-      ? 'Admin-Rapport für einen ausgewählten Mitarbeiter neu erfassen. Die bestehende RLS prüft den Insert serverseitig.'
+      ? ''
       : 'Bestehende Rapporte können hier kontrolliert und angepasst werden.';
+    elements.reportEditDescription.classList.toggle('hidden', isCreating);
   }
   elements.editEmployeeNameField?.classList.toggle('hidden', isCreating);
   elements.createReportProfileField?.classList.toggle('hidden', !isCreating);
