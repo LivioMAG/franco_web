@@ -590,7 +590,7 @@ function renderConfirmedAbsenceCheck(check) {
   const statusLabel = check.hasConfirmedAbsence ? 'Bestätigte Absenz vorhanden' : 'Keine bestätigte Absenz gefunden';
   const requestDetails = check.confirmedRequests.length
     ? check.confirmedRequests.map((request) => renderConfirmedAbsenceRequestDetail(request)).join('')
-    : '<div class="absence-control-confirmation-detail subtle-text">Bitte bestätigte Absenz nachtragen oder prüfen.</div>';
+    : '';
 
   return `
     <div class="absence-control-confirmation ${escapeAttribute(statusClass)}">
@@ -607,13 +607,13 @@ function renderConfirmedAbsenceCheck(check) {
 function renderConfirmedAbsenceRequestDetail(request) {
   const percentLabel = `${request.incapacityPercent} %`;
   const hoursLabel = request.isFullIncapacity
-    ? 'Special Request leer: 100 %'
+    ? ''
     : `${formatAbsenceControlHours(request.weeklyAbsenceHours)} von ${formatAbsenceControlHours(request.weeklyHours)} pro Woche`;
   return `
     <div class="absence-control-confirmation-detail">
       <span>Bestätigte Absenz: ${formatDate(request.startDate)} bis ${formatDate(request.endDate)}</span>
       <strong>Arbeitsunfähigkeit ${escapeHtml(percentLabel)}</strong>
-      <small>${escapeHtml(hoursLabel)}</small>
+      ${hoursLabel ? `<small>${escapeHtml(hoursLabel)}</small>` : ''}
     </div>
   `;
 }
