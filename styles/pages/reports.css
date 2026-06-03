@@ -712,6 +712,26 @@
   border-radius: 12px;
 }
 
+.holiday-control-button.is-alert {
+  border-color: rgba(215, 0, 21, 0.34);
+  color: #d70015;
+  background: rgba(215, 0, 21, 0.08);
+}
+
+.holiday-control-alert-summary {
+  border: 1px solid rgba(215, 0, 21, 0.22);
+  color: #8a0010;
+  background: rgba(215, 0, 21, 0.06);
+}
+
+.holiday-control-inline-list {
+  margin-top: 6px;
+}
+
+.holiday-control-card {
+  gap: 10px;
+}
+
 .absence-control-modal-card {
   width: min(980px, calc(100vw - 32px));
 }

@@ -60,9 +60,13 @@ function cacheElements() {
   elements.reportsFilterEmployeeButton = document.getElementById('reportsFilterEmployeeButton');
   elements.reportsSortSelect = document.getElementById('reportsSortSelect');
   elements.absenceControlButton = document.getElementById('absenceControlButton');
+  elements.holidayControlButton = document.getElementById('holidayControlButton');
   elements.absenceControlModal = document.getElementById('absenceControlModal');
   elements.absenceControlModalContent = document.getElementById('absenceControlModalContent');
   elements.closeAbsenceControlModalButton = document.getElementById('closeAbsenceControlModalButton');
+  elements.holidayControlModal = document.getElementById('holidayControlModal');
+  elements.holidayControlModalContent = document.getElementById('holidayControlModalContent');
+  elements.closeHolidayControlModalButton = document.getElementById('closeHolidayControlModalButton');
   elements.reportsColumnFilterModal = document.getElementById('reportsColumnFilterModal');
   elements.reportsFilterCommissionButton = document.getElementById('reportsFilterCommissionButton');
   elements.reportsFilterExpensesButton = document.getElementById('reportsFilterExpensesButton');
@@ -236,10 +240,17 @@ function bindEvents() {
   elements.reportsFilterEmployeeButton?.addEventListener('click', () => openReportsColumnFilter('employee'));
   elements.reportsSortSelect?.addEventListener('change', handleReportsSortChange);
   elements.absenceControlButton?.addEventListener('click', openAbsenceControlModal);
+  elements.holidayControlButton?.addEventListener('click', openHolidayControlModal);
   elements.closeAbsenceControlModalButton?.addEventListener('click', closeAbsenceControlModal);
   elements.absenceControlModal?.addEventListener('click', (event) => {
     if (event.target?.dataset?.closeAbsenceControlModal === 'true') {
       closeAbsenceControlModal();
+    }
+  });
+  elements.closeHolidayControlModalButton?.addEventListener('click', closeHolidayControlModal);
+  elements.holidayControlModal?.addEventListener('click', (event) => {
+    if (event.target?.dataset?.closeHolidayControlModal === 'true') {
+      closeHolidayControlModal();
     }
   });
   elements.reportsFilterCommissionButton?.addEventListener('click', () => openReportsColumnFilter('commission'));

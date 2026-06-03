@@ -747,6 +747,7 @@ const state = {
   reportsSortMode: 'date_desc',
   showControlledReports: false,
   isAbsenceControlModalOpen: false,
+  isHolidayControlModalOpen: false,
   absenceFilterQuery: '',
   selectedAbsenceEmployeeIds: [],
   absenceSelectionInitialized: false,
