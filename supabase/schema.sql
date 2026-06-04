@@ -1,9 +1,9 @@
 create extension if not exists pgcrypto;
 
--- Consolidated Supabase schema.
--- Run this file in the Supabase SQL editor for a fresh setup or to normalize an
--- existing database to the current repository schema. Historical migrations have
--- been squashed into this single Stamm-SQL file.
+-- Consolidated Supabase schema for a freshly provisioned Supabase database.
+-- Run this file once in the Supabase SQL editor after creating a new project.
+-- The file intentionally contains only the current target schema and no legacy
+-- migration/cleanup steps for previously used database structures.
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -37,10 +37,6 @@ create table if not exists public.app_profiles (
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
-
-update public.app_profiles
-set role_label = 'Temporär'
-where lower(btrim(role_label)) = 'temporär';
 
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
@@ -222,41 +218,6 @@ create table if not exists public.project_journal (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
--- Normalize existing databases that were created before this consolidated schema.
-alter table public.app_profiles add column if not exists is_admin boolean not null default false;
-alter table public.app_profiles add column if not exists is_active boolean not null default true;
-alter table public.app_profiles add column if not exists vacation_allowance_hours numeric(10,2) not null default 0;
-alter table public.app_profiles add column if not exists booked_reported_hours numeric(10,2) not null default 0;
-alter table public.app_profiles add column if not exists booked_vacation_hours numeric(10,2) not null default 0;
-alter table public.app_profiles add column if not exists booked_vacations_hours numeric(10,2) not null default 0;
-alter table public.app_profiles add column if not exists booked_unpaid_holiday_hours numeric(10,2) not null default 0;
-alter table public.app_profiles add column if not exists reported_hours numeric(10,2) not null default 0;
-alter table public.app_profiles add column if not exists credited_hours numeric(10,2) not null default 0;
-alter table public.app_profiles add column if not exists weekly_hours numeric(10,2) not null default 40;
-alter table public.app_profiles alter column weekly_hours type numeric(10,2) using weekly_hours::numeric(10,2);
-alter table public.app_profiles add column if not exists target_revenue numeric(12,2) not null default 0;
-alter table public.app_profiles add column if not exists school_day_1 smallint;
-alter table public.app_profiles add column if not exists school_day_2 smallint;
-alter table public.app_profiles add column if not exists block_schedule jsonb not null default '[]'::jsonb;
-
-alter table public.weekly_reports add column if not exists controll text;
-alter table public.weekly_reports add column if not exists project_name text;
-alter table public.weekly_reports add column if not exists total_adjusted_work_minutes integer not null default 0;
-alter table public.weekly_reports drop column if exists adjusted_work_minutes;
-alter table public.weekly_reports add column if not exists year integer;
-alter table public.weekly_reports add column if not exists kw integer;
-alter table public.weekly_reports add column if not exists abz_typ integer not null default 0;
-
-alter table public.holiday_requests add column if not exists controll_pl text;
-alter table public.holiday_requests add column if not exists controll_gl text;
-alter table public.holiday_requests add column if not exists approval_status smallint not null default 1;
-alter table public.holiday_requests add column if not exists special_request_hours jsonb not null default '{}'::jsonb;
-alter table public.platform_holidays add column if not exists is_paid boolean not null default true;
-alter table public.request_history add column if not exists linked_weekly_report_ids jsonb not null default '[]'::jsonb;
-alter table public.daily_assignments drop column if exists assignment_type;
-alter table public.project_kanban_notes add column if not exists color text check (color in ('green', 'blue', 'yellow', 'red'));
-alter table public.project_kanban_notes add column if not exists visible_from_date date;
-alter table public.project_dispo_items add column if not exists week_start_date date;
 
 create or replace function public.is_admin_user()
 returns boolean
@@ -515,10 +476,7 @@ returns text
 language sql
 immutable
 as $$
-  select coalesce(
-    nullif(trim(coalesce(to_jsonb(p_report)->>'controll', '')), ''),
-    nullif(trim(coalesce(to_jsonb(p_report)->>'control', '')), '')
-  )
+  select nullif(trim(coalesce(p_report.controll, '')), '')
 $$;
 
 create or replace function public.cleanup_confirmed_request_history_booking()
@@ -529,17 +487,8 @@ set search_path = public
 as $$
 declare
   v_linked_ids uuid[];
-  v_request_type text;
-  v_date_range text;
-  v_start_date date;
-  v_end_date date;
-  v_expected_abz integer;
 begin
   if old.profile_id is null then
-    return old;
-  end if;
-
-  if old.context not like 'Bestätigt durch PL:%' then
     return old;
   end if;
 
@@ -551,47 +500,7 @@ begin
     delete from public.weekly_reports
     where profile_id = old.profile_id
       and id = any(v_linked_ids);
-    return old;
   end if;
-
-  -- Fallback für alte Historieneinträge ohne linked_weekly_report_ids.
-  v_request_type := lower(trim(split_part(old.request, '|', 1)));
-  v_date_range := trim(split_part(old.request, '|', 2));
-
-  if v_date_range like '% bis %' then
-    if trim(split_part(v_date_range, ' bis ', 1)) ~ '^\d{4}-\d{2}-\d{2}$' then
-      v_start_date := trim(split_part(v_date_range, ' bis ', 1))::date;
-    end if;
-    if trim(split_part(v_date_range, ' bis ', 2)) ~ '^\d{4}-\d{2}-\d{2}$' then
-      v_end_date := trim(split_part(v_date_range, ' bis ', 2))::date;
-    end if;
-  end if;
-
-  if v_start_date is null or v_end_date is null then
-    return old;
-  end if;
-
-  v_expected_abz := case v_request_type
-    when 'ferien' then 1
-    when 'fehlen' then 1
-    when 'krankheit' then 2
-    when 'militaer' then 3
-    when 'zivildienst' then 3
-    when 'unfall' then 4
-    when 'feiertag' then 5
-    when 'uk' then 6
-    when 'ük' then 6
-    when 'berufsschule' then 7
-    else null
-  end;
-
-  delete from public.weekly_reports
-  where profile_id = old.profile_id
-    and work_date between v_start_date and v_end_date
-    and controll is not null
-    and nullif(trim(controll), '') is not null
-    and notes like 'Automatisch aus bestätigter Absenz (%)%'
-    and (v_expected_abz is null or abz_typ = v_expected_abz);
 
   return old;
 end;
@@ -619,21 +528,6 @@ begin
   raise exception 'Bestätigte Wochenrapporte sind gesperrt und dürfen nicht mehr bearbeitet werden.';
 end;
 $$;
-
--- Obsolete confirmation-booking helpers are intentionally removed. Confirmation
--- still locks weekly reports, but no longer books saldo/profile-hour deltas.
-drop trigger if exists weekly_report_book_confirmation_hours on public.weekly_reports;
-drop function if exists public.weekly_report_book_confirmation_hours();
-drop function if exists public.weekly_report_total_adjusted_hours(public.weekly_reports);
-drop trigger if exists weekly_report_apply_confirmation_booking on public.weekly_reports;
-drop trigger if exists weekly_report_revert_confirmation_booking on public.weekly_reports;
-drop function if exists public.weekly_report_apply_confirmation_booking();
-drop function if exists public.weekly_report_revert_confirmation_booking();
-drop function if exists public.weekly_report_apply_profile_delta(uuid, numeric, numeric);
-drop function if exists public.weekly_report_effective_minutes(public.weekly_reports);
-drop function if exists public.weekly_report_base_adjusted_minutes(public.weekly_reports);
-drop function if exists public.weekly_report_matches_keyword(public.weekly_reports, text);
-drop function if exists public.weekly_report_should_book_reported_hours(public.weekly_reports);
 
 create unique index if not exists projects_commission_number_idx on public.projects (commission_number);
 create index if not exists weekly_reports_profile_work_date_idx on public.weekly_reports (profile_id, work_date);
@@ -665,12 +559,6 @@ alter table public.project_dispo_layer enable row level security;
 alter table public.project_dispo_items enable row level security;
 alter table public.project_journal enable row level security;
 
-drop policy if exists "app_profiles own or master" on public.app_profiles;
-drop policy if exists "app_profiles select own or master" on public.app_profiles;
-drop policy if exists "app_profiles insert own or master" on public.app_profiles;
-drop policy if exists "app_profiles update own or master" on public.app_profiles;
-drop policy if exists "app_profiles delete own or master" on public.app_profiles;
-drop policy if exists "authenticated full access app_profiles" on public.app_profiles;
 drop policy if exists "app_profiles own or admin" on public.app_profiles;
 drop policy if exists "app_profiles insert own or admin" on public.app_profiles;
 drop policy if exists "app_profiles update own or admin" on public.app_profiles;
@@ -693,8 +581,6 @@ on public.app_profiles
 for delete
 using (public.is_admin_user() or auth.uid() = id);
 
-drop policy if exists "weekly_reports own or master" on public.weekly_reports;
-drop policy if exists "authenticated full access weekly_reports" on public.weekly_reports;
 drop policy if exists "weekly_reports own or admin" on public.weekly_reports;
 create policy "weekly_reports own or admin"
 on public.weekly_reports
@@ -702,8 +588,6 @@ for all
 using (public.is_admin_user() or auth.uid() = profile_id)
 with check (public.is_admin_user() or auth.uid() = profile_id);
 
-drop policy if exists "holiday_requests own or master" on public.holiday_requests;
-drop policy if exists "authenticated full access holiday_requests" on public.holiday_requests;
 drop policy if exists "holiday_requests own or admin" on public.holiday_requests;
 create policy "holiday_requests own or admin"
 on public.holiday_requests
@@ -913,18 +797,12 @@ insert into storage.buckets (id, name, public)
 values ('project-journal-attachments', 'project-journal-attachments', false)
 on conflict (id) do nothing;
 
-drop policy if exists "weekly attachment read own or master" on storage.objects;
-drop policy if exists "weekly attachment write own or master" on storage.objects;
-drop policy if exists "authenticated attachment read" on storage.objects;
-drop policy if exists "authenticated attachment write" on storage.objects;
-drop policy if exists "weekly attachment read own or admin" on storage.objects;
-drop policy if exists "weekly attachment write own or admin" on storage.objects;
-drop policy if exists "crm note attachment read own or admin" on storage.objects;
-drop policy if exists "crm note attachment write own or admin" on storage.objects;
 drop policy if exists "project kanban attachment read own or admin" on storage.objects;
 drop policy if exists "project kanban attachment write own or admin" on storage.objects;
 drop policy if exists "project journal attachment read own or admin" on storage.objects;
 drop policy if exists "project journal attachment write own or admin" on storage.objects;
+drop policy if exists "weekly attachment read own or admin" on storage.objects;
+drop policy if exists "weekly attachment write own or admin" on storage.objects;
 
 create policy "weekly attachment read own or admin"
 on storage.objects
@@ -996,19 +874,3 @@ for all
 to authenticated
 using (bucket_id = 'project-journal-attachments' and public.is_admin_user())
 with check (bucket_id = 'project-journal-attachments' and public.is_admin_user());
-
--- Remove persistence artifacts from features that were intentionally retired.
-drop table if exists public.project_disco_entries cascade;
-drop table if exists public.project_disco_layers cascade;
-drop table if exists public.notes cascade;
-drop table if exists public.project_assignments cascade;
-drop table if exists public.bot_profiles cascade;
-
-do $$
-begin
-  delete from storage.buckets where id = 'crm-note-attachments';
-exception
-  when foreign_key_violation then
-    raise notice 'Skipping drop of storage bucket crm-note-attachments: bucket still contains objects. Delete objects via Storage API first.';
-end;
-$$;
