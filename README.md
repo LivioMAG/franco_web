@@ -15,7 +15,7 @@ Statische Desktop-Webplattform mit HTML, CSS und JavaScript für:
 - `src/app.js`: App-Bootstrap, DOM-Caching und Event-Bindings
 - `src/`: Aufgeteilte App-Logik für State, Konstanten, Services, Module, UI-Helfer und Utilities
 - `config/`: Supabase-Konfiguration, App-Einstellungen und Navigation
-- `supabase/schema.sql`: Tabellen, Trigger, RLS und Storage-Policies mit Vollzugriff über `is_admin`
+- `supabase/schema.sql`: frisches Zielschema mit Tabellen, Funktionen, Triggern, RLS und Storage-Policies mit Vollzugriff über `is_admin`
 - `config/supabase-config.example.json`: Vorlage für die lokale Supabase-Konfiguration
 - `docs/`: Architektur-, Deployment- und Datenmodell-Dokumentation
 
@@ -30,9 +30,7 @@ Statische Desktop-Webplattform mit HTML, CSS und JavaScript für:
 ## Hinweise
 
 - Ohne `config/supabase-config.json` läuft die Oberfläche automatisch im Demo-Modus.
-- Für den produktiven Einsatz muss das SQL aus `supabase/schema.sql` im Supabase-Projekt
-  ausgeführt werden, damit Profile mit `is_admin = true` die Daten im Frontend vollständig
-  sehen und bearbeiten können.
+- Für den produktiven Einsatz muss das SQL aus `supabase/schema.sql` auf einer frisch aufgesetzten Supabase-Datenbank ausgeführt werden. Das Skript ist bewusst als sauberes Zielschema ohne Altlasten-/Migrationsbereinigung gepflegt; Profile mit `is_admin = true` können die Daten im Frontend vollständig sehen und bearbeiten.
 - Der PDF-Export nutzt `jsPDF` und `jspdf-autotable` direkt per CDN.
 - Wenn ein Browser bei geöffneten PDF-Dateien „PDF-Bearbeitung wird nicht unterstützt“ meldet, den Link „PDF herunterladen“ nutzen: dieser erzwingt den Datei-Download (statt Browser-Viewer), damit die Datei lokal in einer PDF-App (z. B. Adobe Acrobat) bearbeitet werden kann.
 - Anhänge werden auch dann korrekt verlinkt, wenn nur ein Storage-Pfad (ohne `publicUrl`) gespeichert ist; die Web-App erzeugt dafür automatisch die öffentliche URL aus dem Bucket.
@@ -42,4 +40,4 @@ Statische Desktop-Webplattform mit HTML, CSS und JavaScript für:
 - Fehler wie `syntax error at or near "@@"` bedeuten fast immer, dass versehentlich Git-Diff-Zeilen in den SQL-Editor kopiert wurden (z. B. `@@ -52,53 +53,63 @@`, `+`, `-` am Zeilenanfang).
 - Im Supabase-SQL-Editor darf nur gültiges SQL ausgeführt werden. Entferne alle Diff-Marker und führe danach das bereinigte Skript erneut aus.
 - Verwende am besten direkt den Inhalt aus `supabase/schema.sql` (ohne Pull-Request-/Patch-Ansicht zu kopieren).
-- Fehler wie `Could not find the table 'public.project_assignments' in the schema cache` weisen auf veraltete Abfragen hin. Die aktuelle App-Version nutzt diese Tabelle nicht mehr; führe `supabase/schema.sql` erneut aus und entferne alte Queries gegen `project_assignments`.
+- Fehler wie `Could not find the table 'public.project_assignments' in the schema cache` weisen auf veraltete Abfragen oder eine alte Datenbank hin. Setze die Datenbank frisch auf, führe `supabase/schema.sql` erneut aus und entferne alte Queries gegen `project_assignments`.
