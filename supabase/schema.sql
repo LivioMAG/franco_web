@@ -464,6 +464,28 @@ alter table public.platform_holidays enable row level security;
 alter table public.school_vacations enable row level security;
 alter table public.projects enable row level security;
 
+-- Explicit API grants are required in addition to RLS policies.
+-- Without these grants PostgREST can fail at login with errors like
+-- "permission denied for table projects" before RLS policies are evaluated.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on table
+  public.app_profiles,
+  public.weekly_reports,
+  public.holiday_requests,
+  public.request_history,
+  public.daily_assignments,
+  public.platform_holidays,
+  public.school_vacations,
+  public.projects
+to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+grant execute on function public.is_admin_user() to authenticated;
+grant execute on function public.build_holiday_request_history_text(public.holiday_requests) to authenticated;
+grant execute on function public.approve_holiday_request(uuid, text, text) to authenticated;
+grant execute on function public.reject_holiday_request(uuid, text) to authenticated;
+grant execute on function public.purge_user_account(uuid) to authenticated;
+grant execute on function public.report_is_confirmed(text) to authenticated;
+
 drop policy if exists "app_profiles own or admin" on public.app_profiles;
 drop policy if exists "app_profiles insert own or admin" on public.app_profiles;
 drop policy if exists "app_profiles update own or admin" on public.app_profiles;
