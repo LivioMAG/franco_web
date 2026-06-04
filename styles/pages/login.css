@@ -2,35 +2,6 @@
   display: grid;
   place-items: center;
   padding: 32px 0;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-}
-
-#loginView::before,
-#loginView::after {
-  content: '';
-  position: fixed;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: 999px;
-  filter: blur(10px);
-}
-
-#loginView::before {
-  width: min(48vw, 560px);
-  height: min(48vw, 560px);
-  top: -180px;
-  right: -120px;
-  background: radial-gradient(circle, rgba(215, 0, 21, 0.2), rgba(215, 0, 21, 0));
-}
-
-#loginView::after {
-  width: min(42vw, 460px);
-  height: min(42vw, 460px);
-  left: -140px;
-  bottom: -170px;
-  background: radial-gradient(circle, rgba(17, 17, 17, 0.1), rgba(17, 17, 17, 0));
 }
 
 .login-card {
@@ -39,37 +10,11 @@
 }
 
 #loginView .login-card {
-  width: min(480px, calc(100vw - 32px));
-  padding: 44px;
-  border-radius: 38px;
-  position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.88)),
-    var(--panel);
-  box-shadow:
-    0 34px 80px rgba(15, 23, 42, 0.14),
-    0 1px 0 rgba(255, 255, 255, 0.8) inset;
-}
-
-#loginView .login-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 7px;
-  background: linear-gradient(90deg, var(--accent-strong), #ff4b5c, var(--accent));
-}
-
-#loginView .login-card::after {
-  content: '';
-  position: absolute;
-  width: 220px;
-  height: 220px;
-  top: -120px;
-  right: -104px;
-  border-radius: 999px;
-  background: rgba(215, 0, 21, 0.07);
-  pointer-events: none;
+  width: min(400px, calc(100vw - 32px));
+  padding: 36px;
+  border-radius: 26px;
+  background: var(--panel);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.1);
 }
 
 .access-denied-card {
@@ -80,31 +25,20 @@
 #loginView .brand-block {
   display: grid;
   justify-items: center;
-  gap: 13px;
+  gap: 20px;
   text-align: center;
-  position: relative;
-  z-index: 1;
 }
 
 #loginView .brand-logo-shell {
   display: grid;
   place-items: center;
-  width: min(270px, 100%);
-  min-height: 92px;
-  padding: 20px 26px;
-  border: 1px solid rgba(17, 17, 17, 0.07);
-  border-radius: 28px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 248, 250, 0.9));
-  box-shadow:
-    0 18px 40px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  width: min(230px, 100%);
 }
 
 #loginView .brand-logo {
   display: block;
   width: 100%;
-  max-height: 70px;
+  max-height: 74px;
   object-fit: contain;
 }
 
@@ -115,17 +49,10 @@
 }
 
 #loginView .brand-block h1 {
-  margin: 4px 0 0;
-  font-size: clamp(32px, 6vw, 46px);
-  line-height: 0.98;
-  letter-spacing: -0.065em;
-}
-
-#loginView .brand-block p {
-  max-width: 320px;
   margin: 0;
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: clamp(28px, 5vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -0.045em;
 }
 
 .brand-block p,
@@ -153,10 +80,8 @@
 
 .login-form {
   display: grid;
-  gap: 18px;
-  margin-top: 34px;
-  position: relative;
-  z-index: 1;
+  gap: 16px;
+  margin-top: 30px;
 }
 
 label {
@@ -165,39 +90,6 @@ label {
   font-size: 14px;
   font-weight: 700;
   color: rgba(17, 17, 17, 0.72);
-}
-
-.login-input-shell {
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  border-radius: 20px;
-  padding: 0 16px;
-  background: rgba(255, 255, 255, 0.9);
-  color: rgba(17, 17, 17, 0.42);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 12px 26px rgba(15, 23, 42, 0.045);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
-}
-
-.login-input-shell:focus-within {
-  border-color: rgba(215, 0, 21, 0.42);
-  background: #ffffff;
-  color: var(--accent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 0 0 4px rgba(215, 0, 21, 0.1),
-    0 16px 30px rgba(15, 23, 42, 0.07);
-}
-
-.login-input-shell i,
-.login-submit-button i {
-  width: 20px;
-  height: 20px;
 }
 
 input,
@@ -213,14 +105,6 @@ textarea {
     inset 0 1px 0 rgba(255, 255, 255, 0.78),
     0 10px 22px rgba(15, 23, 42, 0.04);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-.login-input-shell input {
-  border: 0;
-  border-radius: 0;
-  padding: 16px 0;
-  background: transparent;
-  box-shadow: none;
 }
 
 input::placeholder,
@@ -240,19 +124,12 @@ textarea:focus {
     0 14px 28px rgba(15, 23, 42, 0.06);
 }
 
-.login-input-shell input:focus {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
 .login-submit-button {
   margin-top: 8px;
   min-height: 54px;
   justify-content: center;
-  gap: 10px;
-  border-radius: 20px;
-  box-shadow: 0 18px 34px rgba(215, 0, 21, 0.24);
+  border-radius: 18px;
+  box-shadow: 0 14px 28px rgba(215, 0, 21, 0.2);
 }
 
 @media (max-width: 560px) {
@@ -261,16 +138,15 @@ textarea:focus {
   }
 
   #loginView .login-card {
-    padding: 32px 24px;
-    border-radius: 30px;
+    padding: 30px 22px;
+    border-radius: 24px;
   }
 
   #loginView .brand-logo-shell {
-    min-height: 82px;
-    padding: 18px 22px;
+    width: min(210px, 100%);
   }
 
   #loginView .brand-block h1 {
-    font-size: clamp(30px, 11vw, 40px);
+    font-size: clamp(28px, 10vw, 36px);
   }
 }
