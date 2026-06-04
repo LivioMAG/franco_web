@@ -138,21 +138,6 @@ create table if not exists public.school_vacations (
   constraint school_vacations_range_check check (end_date >= start_date)
 );
 
-create table if not exists public.crm_contacts (
-  id uuid primary key default gen_random_uuid(),
-  category text not null check (category in ('kunde', 'lieferant', 'elektroplaner', 'subunternehmer', 'unternehmer')),
-  company_name text,
-  first_name text not null,
-  last_name text not null,
-  street text,
-  city text,
-  postal_code text,
-  phone text,
-  email text,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
-);
-
 create or replace function public.is_admin_user()
 returns boolean
 language sql
@@ -469,7 +454,6 @@ create index if not exists weekly_reports_year_kw_idx on public.weekly_reports (
 create index if not exists holiday_requests_profile_dates_idx on public.holiday_requests (profile_id, start_date, end_date);
 create index if not exists request_history_profile_created_at_idx on public.request_history (profile_id, created_at desc);
 create index if not exists daily_assignments_profile_date_idx on public.daily_assignments (profile_id, assignment_date);
-create index if not exists crm_contacts_last_name_idx on public.crm_contacts (last_name, first_name);
 
 alter table public.app_profiles enable row level security;
 alter table public.weekly_reports enable row level security;
@@ -479,7 +463,6 @@ alter table public.daily_assignments enable row level security;
 alter table public.platform_holidays enable row level security;
 alter table public.school_vacations enable row level security;
 alter table public.projects enable row level security;
-alter table public.crm_contacts enable row level security;
 
 drop policy if exists "app_profiles own or admin" on public.app_profiles;
 drop policy if exists "app_profiles insert own or admin" on public.app_profiles;
@@ -559,14 +542,6 @@ to authenticated
 using (public.is_admin_user())
 with check (public.is_admin_user());
 
-drop policy if exists "crm_contacts admin access" on public.crm_contacts;
-create policy "crm_contacts admin access"
-on public.crm_contacts
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
 drop trigger if exists set_updated_at_app_profiles on public.app_profiles;
 create trigger set_updated_at_app_profiles
 before update on public.app_profiles
@@ -600,11 +575,6 @@ for each row execute function public.set_updated_at();
 drop trigger if exists projects_set_updated_at on public.projects;
 create trigger projects_set_updated_at
 before update on public.projects
-for each row execute function public.set_updated_at();
-
-drop trigger if exists set_updated_at_crm_contacts on public.crm_contacts;
-create trigger set_updated_at_crm_contacts
-before update on public.crm_contacts
 for each row execute function public.set_updated_at();
 
 drop trigger if exists set_updated_at_school_vacations on public.school_vacations;
