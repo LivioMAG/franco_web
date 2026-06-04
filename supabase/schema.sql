@@ -153,72 +153,6 @@ create table if not exists public.crm_contacts (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.project_kanban_notes (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null references public.projects(id) on delete cascade,
-  status text not null default 'todo' check (status in ('todo', 'planned', 'in_progress', 'review', 'done')),
-  position integer not null default 0,
-  note_type text not null default 'text' check (note_type in ('text', 'todo', 'counter')),
-  content jsonb not null default '[]'::jsonb,
-  todo_items jsonb not null default '[]'::jsonb,
-  todo_description text not null default '',
-  counter_value integer not null default 0,
-  counter_start_value integer not null default 1,
-  counter_log jsonb not null default '[]'::jsonb,
-  counter_description text not null default '',
-  attachments jsonb not null default '[]'::jsonb,
-  color text check (color in ('green', 'blue', 'yellow', 'red')),
-  visible_from_date date,
-  created_by_uid uuid references public.app_profiles(id) on delete set null,
-  created_by_name text not null default '',
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
-);
-
-create table if not exists public.project_dispo (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null unique references public.projects(id) on delete cascade,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
-);
-
-create table if not exists public.project_dispo_layer (
-  id uuid primary key default gen_random_uuid(),
-  project_dispo_id uuid not null references public.project_dispo(id) on delete cascade,
-  project_id uuid not null references public.projects(id) on delete cascade,
-  position integer not null default 0,
-  name text not null,
-  profile_id uuid references public.app_profiles(id) on delete set null,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now()),
-  constraint project_dispo_layer_name_or_profile_check check (nullif(trim(name), '') is not null)
-);
-
-create table if not exists public.project_dispo_items (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null references public.projects(id) on delete cascade,
-  layer_id uuid not null references public.project_dispo_layer(id) on delete cascade,
-  note_id uuid not null references public.project_kanban_notes(id) on delete cascade,
-  week_start_date date,
-  weekday smallint not null,
-  position integer not null default 0,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now()),
-  constraint project_dispo_items_weekday_check check (weekday between 0 and 6)
-);
-
-create table if not exists public.project_journal (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null references public.projects(id) on delete cascade,
-  content text not null default '',
-  attachments jsonb not null default '[]'::jsonb,
-  created_by_uid uuid references public.app_profiles(id) on delete set null,
-  created_by_name text,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
-);
-
-
 create or replace function public.is_admin_user()
 returns boolean
 language sql
@@ -536,13 +470,6 @@ create index if not exists holiday_requests_profile_dates_idx on public.holiday_
 create index if not exists request_history_profile_created_at_idx on public.request_history (profile_id, created_at desc);
 create index if not exists daily_assignments_profile_date_idx on public.daily_assignments (profile_id, assignment_date);
 create index if not exists crm_contacts_last_name_idx on public.crm_contacts (last_name, first_name);
-create index if not exists project_kanban_notes_project_status_position_idx on public.project_kanban_notes (project_id, status, position);
-create index if not exists project_kanban_notes_project_visible_from_date_idx on public.project_kanban_notes (project_id, visible_from_date);
-create index if not exists project_dispo_layer_project_dispo_position_idx on public.project_dispo_layer (project_dispo_id, position);
-create index if not exists project_dispo_items_layer_weekday_position_idx on public.project_dispo_items (layer_id, weekday, position);
-create index if not exists project_dispo_items_layer_week_start_weekday_position_idx on public.project_dispo_items (layer_id, week_start_date, weekday, position);
-create index if not exists project_dispo_items_project_idx on public.project_dispo_items (project_id);
-create index if not exists project_journal_project_created_at_idx on public.project_journal (project_id, created_at desc);
 
 alter table public.app_profiles enable row level security;
 alter table public.weekly_reports enable row level security;
@@ -553,11 +480,6 @@ alter table public.platform_holidays enable row level security;
 alter table public.school_vacations enable row level security;
 alter table public.projects enable row level security;
 alter table public.crm_contacts enable row level security;
-alter table public.project_kanban_notes enable row level security;
-alter table public.project_dispo enable row level security;
-alter table public.project_dispo_layer enable row level security;
-alter table public.project_dispo_items enable row level security;
-alter table public.project_journal enable row level security;
 
 drop policy if exists "app_profiles own or admin" on public.app_profiles;
 drop policy if exists "app_profiles insert own or admin" on public.app_profiles;
@@ -645,76 +567,6 @@ to authenticated
 using (public.is_admin_user())
 with check (public.is_admin_user());
 
-drop policy if exists "project_kanban_notes read authenticated" on public.project_kanban_notes;
-drop policy if exists "project_kanban_notes write admin" on public.project_kanban_notes;
-create policy "project_kanban_notes read authenticated"
-on public.project_kanban_notes
-for select
-to authenticated
-using (true);
-create policy "project_kanban_notes write admin"
-on public.project_kanban_notes
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
-drop policy if exists "project_dispo read authenticated" on public.project_dispo;
-drop policy if exists "project_dispo write admin" on public.project_dispo;
-create policy "project_dispo read authenticated"
-on public.project_dispo
-for select
-to authenticated
-using (true);
-create policy "project_dispo write admin"
-on public.project_dispo
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
-drop policy if exists "project_dispo_layer read authenticated" on public.project_dispo_layer;
-drop policy if exists "project_dispo_layer write admin" on public.project_dispo_layer;
-create policy "project_dispo_layer read authenticated"
-on public.project_dispo_layer
-for select
-to authenticated
-using (true);
-create policy "project_dispo_layer write admin"
-on public.project_dispo_layer
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
-drop policy if exists "project_dispo_items read authenticated" on public.project_dispo_items;
-drop policy if exists "project_dispo_items write admin" on public.project_dispo_items;
-create policy "project_dispo_items read authenticated"
-on public.project_dispo_items
-for select
-to authenticated
-using (true);
-create policy "project_dispo_items write admin"
-on public.project_dispo_items
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
-drop policy if exists "project_journal read authenticated" on public.project_journal;
-drop policy if exists "project_journal write admin" on public.project_journal;
-create policy "project_journal read authenticated"
-on public.project_journal
-for select
-to authenticated
-using (true);
-create policy "project_journal write admin"
-on public.project_journal
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
 drop trigger if exists set_updated_at_app_profiles on public.app_profiles;
 create trigger set_updated_at_app_profiles
 before update on public.app_profiles
@@ -755,52 +607,14 @@ create trigger set_updated_at_crm_contacts
 before update on public.crm_contacts
 for each row execute function public.set_updated_at();
 
-drop trigger if exists set_updated_at_project_kanban_notes on public.project_kanban_notes;
-create trigger set_updated_at_project_kanban_notes
-before update on public.project_kanban_notes
-for each row execute function public.set_updated_at();
-
 drop trigger if exists set_updated_at_school_vacations on public.school_vacations;
 create trigger set_updated_at_school_vacations
 before update on public.school_vacations
 for each row execute function public.set_updated_at();
 
-drop trigger if exists set_updated_at_project_dispo on public.project_dispo;
-create trigger set_updated_at_project_dispo
-before update on public.project_dispo
-for each row execute function public.set_updated_at();
-
-drop trigger if exists set_updated_at_project_dispo_layer on public.project_dispo_layer;
-create trigger set_updated_at_project_dispo_layer
-before update on public.project_dispo_layer
-for each row execute function public.set_updated_at();
-
-drop trigger if exists set_updated_at_project_dispo_items on public.project_dispo_items;
-create trigger set_updated_at_project_dispo_items
-before update on public.project_dispo_items
-for each row execute function public.set_updated_at();
-
-drop trigger if exists set_updated_at_project_journal on public.project_journal;
-create trigger set_updated_at_project_journal
-before update on public.project_journal
-for each row execute function public.set_updated_at();
-
 insert into storage.buckets (id, name, public)
 values ('weekly-attachments', 'weekly-attachments', true)
 on conflict (id) do nothing;
-
-insert into storage.buckets (id, name, public)
-values ('project-kanban-attachments', 'project-kanban-attachments', true)
-on conflict (id) do nothing;
-
-insert into storage.buckets (id, name, public)
-values ('project-journal-attachments', 'project-journal-attachments', false)
-on conflict (id) do nothing;
-
-drop policy if exists "project kanban attachment read own or admin" on storage.objects;
-drop policy if exists "project kanban attachment write own or admin" on storage.objects;
-drop policy if exists "project journal attachment read own or admin" on storage.objects;
-drop policy if exists "project journal attachment write own or admin" on storage.objects;
 drop policy if exists "weekly attachment read own or admin" on storage.objects;
 drop policy if exists "weekly attachment write own or admin" on storage.objects;
 
@@ -832,45 +646,3 @@ with check (
     or auth.uid()::text = split_part(name, '/', 1)
   )
 );
-
-create policy "project kanban attachment read own or admin"
-on storage.objects
-for select
-using (
-  bucket_id = 'project-kanban-attachments'
-  and (
-    public.is_admin_user()
-    or auth.uid()::text = split_part(name, '/', 1)
-  )
-);
-
-create policy "project kanban attachment write own or admin"
-on storage.objects
-for all
-using (
-  bucket_id = 'project-kanban-attachments'
-  and (
-    public.is_admin_user()
-    or auth.uid()::text = split_part(name, '/', 1)
-  )
-)
-with check (
-  bucket_id = 'project-kanban-attachments'
-  and (
-    public.is_admin_user()
-    or auth.uid()::text = split_part(name, '/', 1)
-  )
-);
-
-create policy "project journal attachment read own or admin"
-on storage.objects
-for select
-to authenticated
-using (bucket_id = 'project-journal-attachments');
-
-create policy "project journal attachment write own or admin"
-on storage.objects
-for all
-to authenticated
-using (bucket_id = 'project-journal-attachments' and public.is_admin_user())
-with check (bucket_id = 'project-journal-attachments' and public.is_admin_user());
