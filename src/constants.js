@@ -221,27 +221,6 @@ on public.project_kanban_notes (project_id, visible_from_date);
 
 
 
-create table if not exists public.request_history (
-  id uuid primary key default gen_random_uuid(),
-  created_at timestamptz not null default timezone('utc', now()),
-  profile_id uuid not null references public.app_profiles(id) on delete cascade,
-  request text not null,
-  context text not null,
-  linked_weekly_report_ids jsonb not null default '[]'::jsonb
-);
-
-create table if not exists public.daily_assignments (
-  id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.app_profiles(id) on delete cascade,
-  assignment_date date not null,
-  project_id uuid references public.projects(id) on delete set null,
-  label text not null,
-  source text not null default 'manual',
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now()),
-  constraint daily_assignments_unique_profile_day unique (profile_id, assignment_date)
-);
-
 create table if not exists public.school_vacations (
   id uuid primary key default gen_random_uuid(),
   start_date date not null,
@@ -254,12 +233,7 @@ create table if not exists public.school_vacations (
 alter table public.app_profiles enable row level security;
 alter table public.weekly_reports enable row level security;
 alter table public.holiday_requests enable row level security;
-alter table public.request_history enable row level security;
-alter table public.daily_assignments enable row level security;
 alter table public.platform_holidays enable row level security;
-alter table public.school_vacations enable row level security;
-alter table public.projects enable row level security;
-alter table public.project_kanban_notes enable row level security;
 
 create or replace function public.is_admin_user()
 returns boolean
@@ -508,11 +482,6 @@ drop policy if exists "weekly_reports own or admin" on public.weekly_reports;
 drop policy if exists "holiday_requests own or admin" on public.holiday_requests;
 drop policy if exists "platform_holidays read authenticated" on public.platform_holidays;
 drop policy if exists "platform_holidays write admin" on public.platform_holidays;
-drop policy if exists "request_history own or admin" on public.request_history;
-drop policy if exists "daily_assignments own or admin" on public.daily_assignments;
-drop policy if exists "school_vacations admin access" on public.school_vacations;
-drop policy if exists "projects own or admin" on public.projects;
-drop policy if exists "project_kanban_notes admin access" on public.project_kanban_notes;
 drop policy if exists "weekly attachment read own or admin" on storage.objects;
 drop policy if exists "weekly attachment write own or admin" on storage.objects;
 
@@ -559,60 +528,6 @@ on public.platform_holidays
 for all
 using (public.is_admin_user())
 with check (public.is_admin_user());
-
-create policy "request_history own or admin"
-on public.request_history
-for all
-using (public.is_admin_user() or auth.uid() = profile_id)
-with check (public.is_admin_user() or auth.uid() = profile_id);
-
-create policy "daily_assignments own or admin"
-on public.daily_assignments
-for all
-using (public.is_admin_user() or auth.uid() = profile_id)
-with check (public.is_admin_user() or auth.uid() = profile_id);
-
-create policy "school_vacations admin access"
-on public.school_vacations
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
-create policy "projects own or admin"
-on public.projects
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
-create policy "project_kanban_notes admin access"
-on public.project_kanban_notes
-for all
-to authenticated
-using (public.is_admin_user())
-with check (public.is_admin_user());
-
--- Explicit API grants are required in addition to RLS policies.
--- Without these grants PostgREST can fail at login with errors like
--- "permission denied for table projects" before RLS policies are evaluated.
-grant usage on schema public to authenticated;
-grant select, insert, update, delete on table
-  public.app_profiles,
-  public.weekly_reports,
-  public.holiday_requests,
-  public.request_history,
-  public.daily_assignments,
-  public.platform_holidays,
-  public.school_vacations,
-  public.projects,
-  public.project_kanban_notes
-to authenticated;
-grant usage, select on all sequences in schema public to authenticated;
-grant execute on function public.is_admin_user() to authenticated;
-grant execute on function public.build_holiday_request_history_text(public.holiday_requests) to authenticated;
-grant execute on function public.approve_holiday_request(uuid, text, text) to authenticated;
-grant execute on function public.reject_holiday_request(uuid, text) to authenticated;
 
 create policy "weekly attachment read own or admin"
 on storage.objects

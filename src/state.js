@@ -158,7 +158,7 @@ function getAccessConfigurationHint(error) {
   }
 
   if (message.includes('row-level security') || message.includes('permission denied') || message.includes('not allowed')) {
-    return 'Bitte das aktualisierte SQL aus supabase/schema.sql im Supabase-Projekt ausführen. Es setzt die nötigen API-GRANTs und RLS-Policies, damit Profile mit is_admin = true Vollzugriff erhalten.';
+    return 'Bitte das aktualisierte SQL aus supabase/schema.sql im Supabase-Projekt ausführen, damit Profile mit is_admin = true Vollzugriff erhalten.';
   }
 
   if (message.includes("could not find the table 'public.project_assignments' in the schema cache")) {
