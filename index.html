@@ -51,21 +51,33 @@
       <section id="loginView" class="login-view view active">
         <div class="login-card panel">
           <div class="brand-block">
-            <span class="brand-mark" aria-hidden="true">F</span>
+            <div class="brand-logo-shell">
+              <img class="brand-logo" src="./assets/logo.svg" alt="Huber Elektro Logo" />
+            </div>
             <span class="eyebrow">Webplattform</span>
-            <h1>Anmelden</h1>
+            <h1>Willkommen zurück</h1>
+            <p>Wochenrapporte, Absenzen und Dispo zentral verwalten.</p>
           </div>
 
           <form id="loginForm" class="login-form">
-            <label>
+            <label class="login-field">
               <span>E-Mail</span>
-              <input id="emailInput" type="email" autocomplete="email" required />
+              <span class="login-input-shell">
+                <i data-lucide="mail" aria-hidden="true"></i>
+                <input id="emailInput" type="email" autocomplete="email" placeholder="name@firma.ch" required />
+              </span>
             </label>
-            <label>
+            <label class="login-field">
               <span>Passwort</span>
-              <input id="passwordInput" type="password" autocomplete="current-password" required />
+              <span class="login-input-shell">
+                <i data-lucide="lock-keyhole" aria-hidden="true"></i>
+                <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Passwort eingeben" required />
+              </span>
             </label>
-            <button type="submit" class="button button-primary login-submit-button">Einloggen</button>
+            <button type="submit" class="button button-primary login-submit-button">
+              <span>Einloggen</span>
+              <i data-lucide="arrow-right" aria-hidden="true"></i>
+            </button>
           </form>
 
           <div id="loginAlert" class="alert hidden"></div>
