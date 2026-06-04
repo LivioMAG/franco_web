@@ -1,6 +1,6 @@
 {
-  "supabaseUrl": "https://xflljuscywgxfhzdtaju.supabase.co",
-  "supabaseAnonKey": "sb_publishable_ef81JADdMaBM9V-QGzB_Ug_gCXHwgY0",
+  "supabaseUrl": "https://qprocnnclluhmjvqrojp.supabase.co",
+  "supabaseAnonKey": "sb_publishable_mzC6-kRyPx22E9zSMZVLkQ_pdd0Rkwa",
   "webhooks": {
     "missingReportsCall": "https://n8n.voltlog.cloud/webhook/voice-agent-retell"
   }
