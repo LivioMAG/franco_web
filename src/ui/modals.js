@@ -245,17 +245,79 @@ async function handleMissingListClick(event) {
   }
 }
 
+const PROFILE_PHONE_FIELD_NAMES = [
+  'phone',
+  'phone_number',
+  'phoneNumber',
+  'mobile_phone',
+  'mobilePhone',
+  'mobile_number',
+  'mobileNumber',
+  'mobile',
+  'telephone',
+  'telephone_number',
+  'telephoneNumber',
+  'tel',
+  'telefon',
+  'telefonnummer',
+  'telefon_nummer',
+  'handy',
+  'contact_phone',
+  'contactPhone',
+];
+
+const PROFILE_PHONE_METADATA_FIELD_NAMES = [
+  'user_metadata',
+  'raw_user_meta_data',
+  'metadata',
+  'profile',
+  'contact',
+];
+
+function getPhoneNumberFromFields(source) {
+  if (!source || typeof source !== 'object') {
+    return '';
+  }
+
+  for (const fieldName of PROFILE_PHONE_FIELD_NAMES) {
+    const value = source[fieldName];
+    if (value !== undefined && value !== null) {
+      const phone = String(value).trim();
+      if (phone) {
+        return phone;
+      }
+    }
+  }
+
+  return '';
+}
+
+function getPhoneNumberFromMetadata(source) {
+  if (!source || typeof source !== 'object') {
+    return '';
+  }
+
+  for (const fieldName of PROFILE_PHONE_METADATA_FIELD_NAMES) {
+    const phone = getPhoneNumberFromFields(source[fieldName]);
+    if (phone) {
+      return phone;
+    }
+  }
+
+  return '';
+}
+
 function resolveProfilePhoneNumber(profile) {
-  if (!profile) return '';
-  return String(
-    profile.phone
-    || profile.mobile_phone
-    || profile.mobile
-    || profile.telephone
-    || profile.tel
-    || profile.phone_number
-    || '',
-  ).trim();
+  const profilePhone = getPhoneNumberFromFields(profile) || getPhoneNumberFromMetadata(profile);
+  if (profilePhone) {
+    return profilePhone;
+  }
+
+  if (profile && String(profile.id || '') === String(state.user?.id || '')) {
+    return getPhoneNumberFromFields(state.user) || getPhoneNumberFromMetadata(state.user);
+  }
+
+  return '';
 }
 
 async function handleMissingReportsCallSubmit() {
