@@ -188,8 +188,12 @@ function renderReportsTable() {
   elements.reportsTableBody.innerHTML = pagination.pageItems
     .map((report) => {
       const profile = getProfileById(report.profile_id);
+      const isControlled = isReportControlled(report);
+      const rowClasses = `report-row ${isControlled ? 'report-row-locked' : 'report-row-clickable'}`;
+      const rowAction = isControlled ? '' : ' data-action="open-report-edit"';
+      const rowTitle = isControlled ? ' title="Kontrollierte Rapporte können nicht bearbeitet werden"' : '';
       return `
-        <tr class="report-row report-row-clickable" data-action="open-report-edit" data-report-id="${escapeAttribute(report.id)}">
+        <tr class="${rowClasses}"${rowAction} data-report-id="${escapeAttribute(report.id)}"${rowTitle}>
           <td>${escapeHtml(profile?.full_name ?? 'Unbekannt')}</td>
           <td>${renderControllCell(report)}</td>
           <td>${formatDateWithWeekday(report.work_date)}</td>
@@ -222,10 +226,11 @@ function renderSubmissionLists() {
       <li class="align-start">
         <div class="status-stack">
           <strong>${escapeHtml(summary.profile.full_name)}</strong>
-          <div class="subtle-text">${summary.entryCount} Rapporteinträge in dieser Woche</div>
+          <div class="subtle-text">${summary.entryCount} Rapporteinträge in dieser Woche · ${escapeHtml(summary.reportedWeekdayLabel)} rapportiert</div>
         </div>
         <div class="status-meta">
           <span class="pill ${statusClass}">${escapeHtml(statusLabel)}</span>
+          <span class="pill subtle">${escapeHtml(summary.reportedWeekdayLabel)}</span>
           <strong>${formatMinutes(summary.totalMinutes)}</strong>
         </div>
       </li>
@@ -252,6 +257,7 @@ function renderSubmissionLists() {
         </div>
         <div class="status-meta">
           <span class="pill warning">${escapeHtml(entry.statusLabel)}</span>
+          <span class="pill subtle">${escapeHtml(entry.reportedWeekdayLabel)}</span>
           <strong>${formatMinutes(entry.totalMinutes)}</strong>
         </div>
       </li>
@@ -259,7 +265,7 @@ function renderSubmissionLists() {
     );
 
   elements.submissionList.innerHTML = submittedItems.join('') || '<li>In dieser Woche wurde noch kein Rapport erfasst.</li>';
-  elements.missingList.innerHTML = missingItems.join('') || '<li>Alle Profile haben abgegeben.</li>';
+  elements.missingList.innerHTML = missingItems.join('') || '<li>Alle Profile haben vollständig rapportiert.</li>';
   if (elements.openMissingReportsCallModalButton) {
     elements.openMissingReportsCallModalButton.disabled = !missingItems.length;
   }
@@ -1060,6 +1066,50 @@ function getOpenCommissionFilterOptions(reports = state.weeklyReports) {
   return [...commissionsWithOpenReports].sort();
 }
 
+function getEmployeeFilterOptions(reports = state.weeklyReports) {
+  const reportGroups = groupReportsByProfile(reports);
+
+  return getReportableProfiles()
+    .map((profile) => {
+      const profileReports = getReportsForProfile(reportGroups, profile.id);
+      const status = getReportConfirmationStatus(profileReports);
+      return {
+        value: profile.id,
+        label: profile.full_name || 'Unbekannt',
+        totalReports: status.totalReports,
+        confirmedReports: status.confirmedReports,
+        isFullyConfirmed: status.isFullyConfirmed,
+        statusClass: status.isFullyConfirmed ? 'is-confirmed-employee' : 'is-pending-employee',
+        statusLabel: status.isFullyConfirmed ? 'Alle Rapporte bestätigt' : 'Offene oder fehlende Rapporte',
+      };
+    })
+    .sort((left, right) => left.label.localeCompare(right.label, 'de'));
+}
+
+function getReportsForProfile(reportGroups, profileId) {
+  if (reportGroups.has(profileId)) return reportGroups.get(profileId);
+  const normalizedProfileId = String(profileId);
+  if (reportGroups.has(normalizedProfileId)) return reportGroups.get(normalizedProfileId);
+  for (const [groupProfileId, reports] of reportGroups.entries()) {
+    if (String(groupProfileId) === normalizedProfileId) return reports;
+  }
+  return [];
+}
+
+function isReportControlled(report) {
+  return Boolean(String(report?.controll || '').trim());
+}
+
+function getReportConfirmationStatus(reports = []) {
+  const totalReports = reports.length;
+  const confirmedReports = reports.filter((report) => isReportControlled(report)).length;
+  return {
+    totalReports,
+    confirmedReports,
+    isFullyConfirmed: totalReports > 0 && confirmedReports === totalReports,
+  };
+}
+
 function getSortedFilteredReports() {
   return [...getFilteredReports()].sort((a, b) => {
     const dateCompare = `${a.work_date || ''}${a.start_time || ''}`.localeCompare(`${b.work_date || ''}${b.start_time || ''}`);
@@ -1169,12 +1219,15 @@ function getProfileSubmissionSummary() {
   return getReportableProfiles().map((profile) => {
     const reports = groups.get(profile.id) ?? [];
     const totalMinutes = reports.reduce((sum, report) => sum + getAdjustedWorkMinutes(report), 0);
+    const reportedWeekdayCount = getReportedWeekdayCount(reports);
     const hasPendingControll = reports.some((report) => !String(report.controll || '').trim());
     return {
       profile,
       reports,
       entryCount: reports.length,
       totalMinutes,
+      reportedWeekdayCount,
+      reportedWeekdayLabel: formatReportedWeekdayCount(reportedWeekdayCount),
       hasSubmission: reports.length > 0,
       hasPendingControll,
     };
@@ -1190,7 +1243,10 @@ function handleReportsTableClick(event) {
   if (clickedRow && !event.target.closest('button, input, label, a')) {
     const rowReportId = clickedRow.dataset.reportId;
     if (rowReportId) {
-      openReportEditModal(rowReportId);
+      const report = state.weeklyReports.find((item) => String(item.id) === String(rowReportId));
+      if (!isReportControlled(report)) {
+        openReportEditModal(rowReportId);
+      }
       return;
     }
   }
@@ -1206,7 +1262,10 @@ function handleReportsTableClick(event) {
   }
 
   if (trigger.dataset.action === 'edit-report' || trigger.dataset.action === 'open-report-edit') {
-    openReportEditModal(reportId);
+    const report = state.weeklyReports.find((item) => String(item.id) === String(reportId));
+    if (!isReportControlled(report)) {
+      openReportEditModal(reportId);
+    }
     return;
   }
 
@@ -1216,6 +1275,8 @@ function handleReportsTableClick(event) {
   }
 
   if (trigger.dataset.action === 'confirm-report') {
+    event.preventDefault();
+    event.stopPropagation();
     handleConfirmReport(reportId);
     return;
   }
@@ -1329,6 +1390,7 @@ async function handleBulkConfirmSubmit() {
 }
 
 const EDITABLE_SPECIAL_ABSENCE_TYPE_CODES = new Set([1, 2, 3, 4, 6, 7]);
+const CREATE_REPORT_SPECIAL_ABSENCE_TYPE_CODES = new Set([1, 2, 3, 4, 5, 6, 7, 9]);
 
 function isEditableSpecialAbsenceReport(report) {
   return EDITABLE_SPECIAL_ABSENCE_TYPE_CODES.has(Number(report?.abz_typ));
@@ -1339,8 +1401,16 @@ function getEditableSpecialAbsenceOptions() {
 }
 
 function getEditableSpecialAbsenceLabel(typeCode) {
-  const option = getEditableSpecialAbsenceOptions().find((item) => Number(item.typeCode) === Number(typeCode));
+  const option = ABSENCE_CATEGORY_CONFIG.find((item) => Number(item.typeCode) === Number(typeCode));
   return option?.label || 'Absenz';
+}
+
+function getCreateReportSpecialAbsenceOptions() {
+  return ABSENCE_CATEGORY_CONFIG.filter((item) => CREATE_REPORT_SPECIAL_ABSENCE_TYPE_CODES.has(Number(item.typeCode)));
+}
+
+function isCreateReportHolidayType(typeCode) {
+  return HOLIDAY_TYPE_CODES.has(Number(typeCode));
 }
 
 function renderSpecialReportEditAbsenceTypeOptions(selectedTypeCode) {
@@ -1392,7 +1462,7 @@ function renderCreateReportTypeOptions(selectedTypeCode = 0) {
   if (!elements.createReportTypeSelect) return;
   const options = [
     { typeCode: 0, label: 'Normaler Rapport' },
-    ...getEditableSpecialAbsenceOptions(),
+    ...getCreateReportSpecialAbsenceOptions(),
   ];
   elements.createReportTypeSelect.innerHTML = options
     .map((option) => `<option value="${escapeAttribute(option.typeCode)}" ${Number(option.typeCode) === Number(selectedTypeCode) ? 'selected' : ''}>${escapeHtml(option.label)}</option>`)
@@ -1500,7 +1570,7 @@ function openReportCreateModal() {
 
 function openReportEditModal(reportId) {
   const report = state.weeklyReports.find((item) => String(item.id) === String(reportId));
-  if (!report) {
+  if (!report || isReportControlled(report)) {
     return;
   }
 
@@ -1739,6 +1809,7 @@ async function handleReportEditSubmit(event) {
   const workDate = elements.editWorkDate.value;
   const selectedReportTypeCode = isCreating ? getSelectedCreateReportTypeCode() : Number(existingReport.abz_typ || 0);
   const isSpecialAbsence = isCreating && selectedReportTypeCode !== 0;
+  const isHolidayCreation = isCreating && isCreateReportHolidayType(selectedReportTypeCode);
   const selectedReportTypeLabel = isSpecialAbsence ? getEditableSpecialAbsenceLabel(selectedReportTypeCode) : '';
   const commissionNumber = isSpecialAbsence ? selectedReportTypeLabel : elements.editCommissionNumber.value.trim();
   if (isCreating && !selectedProfileId) {
@@ -1751,6 +1822,22 @@ async function handleReportEditSubmit(event) {
   }
   if (!commissionNumber) {
     alert('Bitte eine Kommission erfassen.');
+    return;
+  }
+
+  if (isHolidayCreation) {
+    state.isSavingReport = true;
+    try {
+      await createPlatformHoliday(workDate, selectedReportTypeLabel, selectedReportTypeCode === PAID_HOLIDAY_TYPE_CODE);
+      await loadData();
+      closeReportEditModal();
+    } catch (error) {
+      console.error(error);
+      alert(`Feiertag konnte nicht erstellt werden: ${error.message}`);
+    } finally {
+      state.isSavingReport = false;
+      render();
+    }
     return;
   }
 
@@ -2339,7 +2426,7 @@ function openReportsColumnFilter(type) {
   const reports = [...state.weeklyReports];
   let content = '';
   if (type === 'employee') {
-    const options = getReportableProfiles().map((p) => ({ value: p.id, label: p.full_name || 'Unbekannt' }));
+    const options = getEmployeeFilterOptions(reports);
     content = buildMultiFilterMarkup(type, options, 'Mitarbeiter filtern');
   } else if (type === 'commission') {
     const values = getOpenCommissionFilterOptions(reports);
@@ -2355,10 +2442,40 @@ function openReportsColumnFilter(type) {
   document.getElementById('confirmColumnFilter')?.addEventListener('click', applyColumnFilterFromPopover);
   document.getElementById('columnFilterSearchInput')?.addEventListener('input', handleColumnFilterSearchInput);
   document.getElementById('clearColumnFilterSelectionButton')?.addEventListener('click', clearColumnFilterSelection);
+  elements.reportsColumnFilterPopover.querySelectorAll('.column-filter-chip input[type="checkbox"]').forEach((checkbox) => {
+    checkbox.addEventListener('change', () => {
+      checkbox.closest('.column-filter-chip')?.classList.toggle('is-selected', checkbox.checked);
+    });
+  });
   renderLucideIcons();
 }
 function buildMultiFilterMarkup(type, options, title){
-  return `<strong class="column-filter-title">${title}</strong><div class="column-filter-toolbar"><label class="column-filter-search-label"><input id="columnFilterSearchInput" type="search" placeholder="Kommission suchen" autocomplete="off" /></label><button id="clearColumnFilterSelectionButton" class="button button-secondary report-filter-icon-button" type="button" title="Alle abwählen" aria-label="Alle abwählen">${renderIconButtonContent('x', 'Alle abwählen')}</button></div><div class="column-filter-grid">${options.map((o)=>`<label class="column-filter-chip" data-filter-label="${escapeAttribute(String(o.label || '').toLowerCase())}"><input type="checkbox" value="${escapeAttribute(o.value)}" ${state.reportColumnFilter.type===type&&state.reportColumnFilter.values.includes(o.value)?'checked':''}/><span>${escapeHtml(o.label)}</span></label>`).join('')}</div><div class="column-filter-actions"><button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button></div>`;
+  return `<strong class="column-filter-title">${title}</strong><div class="column-filter-toolbar"><label class="column-filter-search-label"><input id="columnFilterSearchInput" type="search" placeholder="${type === 'employee' ? 'Mitarbeiter suchen' : 'Kommission suchen'}" autocomplete="off" /></label><button id="clearColumnFilterSelectionButton" class="button button-secondary report-filter-icon-button" type="button" title="Alle abwählen" aria-label="Alle abwählen">${renderIconButtonContent('x', 'Alle abwählen')}</button></div><div class="column-filter-grid">${options.map((o)=>renderColumnFilterChip(type, o)).join('')}</div><div class="column-filter-actions"><button id="confirmColumnFilter" class="button button-primary" type="button">Bestätigen</button></div>`;
+}
+
+function renderColumnFilterChip(type, option) {
+  const isFullyConfirmed = Boolean(option.isFullyConfirmed);
+  const isEmployeeFilter = type === 'employee';
+  const selectedValues = Array.isArray(state.reportColumnFilter.values) ? state.reportColumnFilter.values.map((value) => String(value)) : [];
+  const isChecked = state.reportColumnFilter.type === type && selectedValues.includes(String(option.value));
+  const chipStatusClass = [
+    isFullyConfirmed ? 'is-confirmed-commission' : '',
+    option.statusClass || '',
+    isEmployeeFilter ? 'has-employee-status' : '',
+    isChecked ? 'is-selected' : '',
+  ].filter(Boolean).join(' ');
+  const reportCountLabel = isEmployeeFilter
+    ? `${Number(option.confirmedReports || 0)} von ${Number(option.totalReports || 0)} Rapporten bestätigt`
+    : '';
+  const statusLabel = option.statusLabel || (isFullyConfirmed ? 'Alle Rapporte bestätigt' : 'Nicht vollständig bestätigt');
+  const chipTitle = isEmployeeFilter
+    ? `${option.label} – ${statusLabel}; ${reportCountLabel}`
+    : (isFullyConfirmed ? `${option.label} – alle Rapporte bestätigt` : String(option.label || ''));
+  const statusBadge = isEmployeeFilter
+    ? `<small class="column-filter-chip-status">${escapeHtml(reportCountLabel)}</small>`
+    : (isFullyConfirmed ? '<small class="column-filter-chip-status">✓ Alle Rapporte bestätigt</small>' : '');
+
+  return `<label class="column-filter-chip ${chipStatusClass}" data-status="${isEmployeeFilter ? (isFullyConfirmed ? 'confirmed' : 'pending') : ''}" data-filter-label="${escapeAttribute(String(option.label || '').toLowerCase())}" title="${escapeAttribute(chipTitle)}"><input type="checkbox" value="${escapeAttribute(option.value)}" ${isChecked ? 'checked' : ''}/><span>${escapeHtml(option.label)}</span>${statusBadge}</label>`;
 }
 function handleColumnFilterSearchInput(event) {
   const query = String(event?.target?.value || '').trim().toLowerCase();
@@ -2372,6 +2489,7 @@ function clearColumnFilterSelection() {
   const checkboxes = elements.reportsColumnFilterPopover?.querySelectorAll('.column-filter-chip input[type="checkbox"]') || [];
   checkboxes.forEach((checkbox) => {
     checkbox.checked = false;
+    checkbox.closest('.column-filter-chip')?.classList.remove('is-selected');
   });
 }
 function applyColumnFilterFromPopover(){const t=elements.reportsColumnFilterPopover?.dataset.filterType;if(!t)return;let values=[];if(t==='expenses'||t==='attachments'){if(document.getElementById('singleFilterToggle')?.checked)values=['1'];}else{values=Array.from(elements.reportsColumnFilterPopover.querySelectorAll('input[type="checkbox"]:checked')).map((el)=>el.value);}state.reportColumnFilter={type:values.length?t:'none',values};state.reportsPage=1;elements.reportsColumnFilterModal?.classList.add('hidden');renderReportsTable();}
