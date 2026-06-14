@@ -1292,23 +1292,29 @@ async function handleConfirmReport(reportId) {
   }
 
   const report = state.weeklyReports.find((item) => String(item.id) === String(reportId));
-  if (!report || String(report.controll || '').trim()) {
-    return;
-  }
-
-  const controllName = getControllDisplayName();
-  if (!controllName) {
-    alert('Der Name für die Kontrolle konnte nicht ermittelt werden.');
+  if (!report) {
     return;
   }
 
   const previousControll = report.controll;
-  report.controll = controllName;
+  const isCurrentlyControlled = Boolean(String(previousControll || '').trim());
+  let nextControll = '';
+
+  if (!isCurrentlyControlled) {
+    const controllName = getControllDisplayName();
+    if (!controllName) {
+      alert('Der Name für die Kontrolle konnte nicht ermittelt werden.');
+      return;
+    }
+    nextControll = controllName;
+  }
+
+  report.controll = nextControll;
   state.isSavingReport = true;
   renderReportsTable();
 
   try {
-    await confirmReportUsingSingleConfirmationLogic(reportId, controllName);
+    await updateReportControll(reportId, nextControll);
   } catch (error) {
     report.controll = previousControll;
     console.error(error);
@@ -1319,19 +1325,15 @@ async function handleConfirmReport(reportId) {
   }
 }
 
-async function confirmReportUsingSingleConfirmationLogic(reportId, controllName = getControllDisplayName()) {
-  if (!controllName) {
-    throw new Error('Der Name für die Kontrolle konnte nicht ermittelt werden.');
-  }
-
+async function updateReportControll(reportId, controllValue) {
   if (state.isDemoMode) {
-    updateDemoReport(reportId, { controll: controllName });
+    updateDemoReport(reportId, { controll: controllValue });
     return;
   }
 
   const { error } = await state.supabase
     .from('weekly_reports')
-    .update({ controll: controllName })
+    .update({ controll: controllValue })
     .eq('id', reportId);
   if (error) throw error;
 }
@@ -2349,12 +2351,12 @@ async function rejectHolidayRequestWithoutRpc(request) {
 function renderControllCell(report) {
   const controllValue = String(report.controll || '').trim();
   const isControlled = Boolean(controllValue);
-  const titleText = isControlled ? `Kontrolliert von ${controllValue}` : 'Rapport kontrollieren';
+  const titleText = isControlled ? `Kontrolle von ${controllValue} entfernen` : 'Rapport kontrollieren';
   const ariaLabel = isControlled ? titleText : 'Rapport kontrollieren';
 
   return `
     <label class="control-checkbox-button ${isControlled ? 'is-controlled' : ''}" data-action="confirm-report" data-report-id="${escapeAttribute(report.id)}" title="${escapeAttribute(titleText)}">
-      <input type="checkbox" ${isControlled ? 'checked' : ''} ${state.isSavingReport || isControlled ? 'disabled' : ''} aria-label="${escapeAttribute(ariaLabel)}" />
+      <input type="checkbox" ${isControlled ? 'checked' : ''} ${state.isSavingReport ? 'disabled' : ''} aria-label="${escapeAttribute(ariaLabel)}" />
     </label>
   `;
 }
