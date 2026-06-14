@@ -444,6 +444,11 @@ begin
     return new;
   end if;
 
+  if not public.report_is_confirmed(new.controll)
+    and v_old_payload - 'controll' = v_new_payload - 'controll' then
+    return new;
+  end if;
+
   raise exception 'Bestätigte Wochenrapporte sind gesperrt und dürfen nicht mehr bearbeitet werden.';
 end;
 $$;
