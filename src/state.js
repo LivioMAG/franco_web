@@ -7,31 +7,62 @@ function getIncompleteSubmissionProfiles({ selectedOnly = false } = {}) {
 
     const reports = groups.get(profile.id) ?? [];
     const totalMinutes = reports.reduce((sum, report) => sum + getAdjustedWorkMinutes(report), 0);
+    const reportedWeekdayCount = getReportedWeekdayCount(reports);
+    const reportedWeekdayLabel = formatReportedWeekdayCount(reportedWeekdayCount);
     const weeklyHours = Number(profile.weekly_hours || 40);
     const minimumMinutes = weeklyHours * 60 * 0.8;
 
-    if (!reports.length) {
+    if (!reportedWeekdayCount) {
       return [{
         profile,
         totalMinutes: 0,
+        reportedWeekdayCount,
+        reportedWeekdayLabel,
+        minimumMinutes,
         status: 'missing',
         statusLabel: 'Fehlt',
-        description: 'Für diese Woche wurde noch kein Rapport eingereicht.',
+        description: `Für diese Woche wurde noch kein Rapport eingereicht (${reportedWeekdayLabel}).`,
       }];
     }
 
-    if (totalMinutes < minimumMinutes) {
+    const hasTooFewReportedWeekdays = reportedWeekdayCount <= 4;
+    const hasTooFewReportedMinutes = totalMinutes < minimumMinutes;
+
+    if (hasTooFewReportedWeekdays || hasTooFewReportedMinutes) {
+      const descriptions = [];
+      if (hasTooFewReportedWeekdays) {
+        descriptions.push(`In dieser Woche wurde nur an ${reportedWeekdayLabel} rapportiert.`);
+      }
+      if (hasTooFewReportedMinutes) {
+        descriptions.push(`Die rapportierte Zeit liegt unter 80% der Sollzeit (${(minimumMinutes / 60).toFixed(2)} h).`);
+      }
       return [{
         profile,
         totalMinutes,
+        reportedWeekdayCount,
+        reportedWeekdayLabel,
+        minimumMinutes,
         status: 'incomplete',
         statusLabel: 'Unvollständig',
-        description: `Rapportierte Zeit liegt unter 80% der Sollzeit (${(minimumMinutes / 60).toFixed(2)} h).`,
+        description: descriptions.join(' '),
       }];
     }
 
     return [];
   });
+}
+
+function getReportedWeekdayCount(reports = []) {
+  return new Set(
+    reports
+      .map((report) => String(report?.work_date || '').trim())
+      .filter(Boolean),
+  ).size;
+}
+
+function formatReportedWeekdayCount(count) {
+  const normalizedCount = Number(count || 0);
+  return `${normalizedCount} ${normalizedCount === 1 ? 'Tag' : 'Tage'}`;
 }
 
 function getAvailableReportProfileIds() {

@@ -103,11 +103,12 @@ async function exportWeekPdfInternal({ includeVisumStamp = false } = {}) {
       entry.profile.full_name,
       entry.profile.email,
       entry.statusLabel,
+      entry.reportedWeekdayLabel,
     ]);
     pdf.autoTable({
       startY: 30,
-      head: [['Mitarbeiter', 'E-Mail', 'Status']],
-      body: missingRows.length ? missingRows : [['Alle Mitarbeiter haben vollständig abgegeben.', '', '']],
+      head: [['Mitarbeiter', 'E-Mail', 'Status', 'Rapportierte Tage']],
+      body: missingRows.length ? missingRows : [['Alle Mitarbeiter haben vollständig rapportiert.', '', '', '']],
       styles: { fontSize: 9, cellPadding: 3, lineColor: [0, 0, 0], lineWidth: 0.2 },
       headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] },
     });
@@ -685,6 +686,91 @@ function drawAbsenceTable(pdf, { margin, y, width, rows }) {
   });
 }
 
+const PDF_ATTACHMENT_IMAGE_MAX_EDGE = 2400;
+
+async function loadPdfSafeAttachmentImage(url) {
+  const blob = await fetchAttachmentBlob(url);
+  const bitmap = await decodeAttachmentImage(blob);
+  const normalized = normalizeAttachmentImageSize(bitmap.width, bitmap.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = normalized.width;
+  canvas.height = normalized.height;
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    closeDecodedAttachmentImage(bitmap);
+    throw new Error('Bild konnte nicht verarbeitet werden');
+  }
+
+  try {
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    return {
+      dataUrl: canvas.toDataURL('image/jpeg', 0.9),
+      fileType: 'JPEG',
+      width: canvas.width,
+      height: canvas.height,
+    };
+  } finally {
+    closeDecodedAttachmentImage(bitmap);
+  }
+}
+
+async function fetchAttachmentBlob(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('Datei konnte nicht geladen werden');
+  }
+  const blob = await response.blob();
+  const contentType = String(blob.type || '').toLowerCase();
+  if (contentType && !contentType.startsWith('image/')) {
+    throw new Error('Datei ist kein Bild');
+  }
+  return blob;
+}
+
+async function decodeAttachmentImage(blob) {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      return await createImageBitmap(blob, { imageOrientation: 'from-image' });
+    } catch (error) {
+      // Fallback below handles browsers that do not support imageOrientation or specific image encodings.
+    }
+  }
+
+  return await new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Bild konnte nicht dekodiert werden'));
+    };
+    image.src = objectUrl;
+  });
+}
+
+function normalizeAttachmentImageSize(width, height) {
+  const safeWidth = Math.max(1, Number(width) || 1);
+  const safeHeight = Math.max(1, Number(height) || 1);
+  const scale = Math.min(1, PDF_ATTACHMENT_IMAGE_MAX_EDGE / Math.max(safeWidth, safeHeight));
+  return {
+    width: Math.max(1, Math.round(safeWidth * scale)),
+    height: Math.max(1, Math.round(safeHeight * scale)),
+  };
+}
+
+function closeDecodedAttachmentImage(image) {
+  if (typeof image?.close === 'function') {
+    image.close();
+  }
+}
+
 async function drawAttachmentGalleryPage(pdf, attachments, { profileName, calendarWeek }) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -705,14 +791,13 @@ async function drawAttachmentGalleryPage(pdf, attachments, { profileName, calend
     const slotX = margin + index * (slotWidth + slotGap);
     const slotY = contentTopY;
     try {
-      const dataUrl = await fileToDataUrl(getAttachmentUrl(attachment));
-      const imageProps = pdf.getImageProperties(dataUrl);
-      const scale = Math.min(slotWidth / imageProps.width, slotHeight / imageProps.height);
-      const renderWidth = imageProps.width * scale;
-      const renderHeight = imageProps.height * scale;
+      const image = await loadPdfSafeAttachmentImage(getAttachmentUrl(attachment));
+      const scale = Math.min(slotWidth / image.width, slotHeight / image.height);
+      const renderWidth = image.width * scale;
+      const renderHeight = image.height * scale;
       const renderX = slotX + (slotWidth - renderWidth) / 2;
       const renderY = slotY + (slotHeight - renderHeight) / 2;
-      pdf.addImage(dataUrl, imageProps.fileType || 'JPEG', renderX, renderY, renderWidth, renderHeight);
+      pdf.addImage(image.dataUrl, image.fileType, renderX, renderY, renderWidth, renderHeight);
     } catch (error) {
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
